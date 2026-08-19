@@ -2346,6 +2346,21 @@
                     renderJadwal();
                 }
             }
+
+            // --- FITUR BARU: Buka Gembok Kaldik Guru ---
+            if(pageId === 'page-guru-kalender') {
+                // Cek apakah admin sudah klik sinkron di server
+                const isSynced = GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikSync === true;
+                
+                if(isSynced) {
+                    document.getElementById('guru-kaldik-status-belum').style.display = 'none';
+                    document.getElementById('guru-kaldik-status-sudah').style.display = 'block';
+                } else {
+                    document.getElementById('guru-kaldik-status-belum').style.display = 'block';
+                    document.getElementById('guru-kaldik-status-sudah').style.display = 'none';
+                }
+            }
+            // -------------------------------------------
         }
 
        function renderJadwal() {
@@ -3741,10 +3756,25 @@ async function simpanProfilGuru(e) {
             }, 2500); 
         }
 
-        function sinkronKaldik(b) { 
-            b.innerText="Tersinkron"; 
-            b.className="btn btn-sm btn-primary"; 
-            showToast('Tersinkron', 'success'); 
+        async function sinkronKaldik(b) { 
+            b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyinkron...';
+            b.disabled = true;
+
+            // Simpan status sinkronisasi ke profil sekolah di Database
+            if (!GLOBAL_DATA.profilSekolah) GLOBAL_DATA.profilSekolah = {};
+            GLOBAL_DATA.profilSekolah.kaldikSync = true;
+
+            const res = await fetchAPI('updateProfilSekolah', GLOBAL_DATA.profilSekolah);
+
+            if(res.success) {
+                b.innerHTML = '<i class="fas fa-check me-1"></i> Tersinkron';
+                b.className = "btn btn-sm btn-primary fw-bold shadow-sm";
+                showToast('Kalender Pendidikan berhasil disinkronkan ke seluruh Guru!', 'success');
+            } else {
+                showToast('Gagal menyinkronkan: ' + res.message, 'error');
+                b.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru';
+                b.disabled = false;
+            }
         }
         
         function downloadLaporanAdmin() { 
