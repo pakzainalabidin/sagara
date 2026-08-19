@@ -921,7 +921,8 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label small fw-bold">Jabatan</label>
-                                    <select class="form-select" id="select-jabatan-guru" onchange="handleJabatanChange(this)" required>
+                                    <!-- Menambahkan atribut 'disabled' dan warna abu-abu (bg-light text-muted) -->
+                                    <select class="form-select bg-light text-muted" id="select-jabatan-guru" disabled>
                                         <option value="">-- Pilih Jabatan --</option>
                                         <option value="Guru Kelas" selected>Guru Kelas</option>
                                         <option value="Guru PJOK">Guru PJOK</option>
@@ -929,10 +930,13 @@
                                         <option value="Guru Bhs. Inggris">Guru Bhs. Inggris</option>
                                         <option value="Guru Bhs. Madura">Guru Bhs. Madura</option>
                                     </select>
+                                    <!-- Label peringatan gembok -->
+                                    <small class="text-danger mt-1 d-block" style="font-size: 0.7rem;"><i class="fas fa-lock me-1"></i> Hak akses dikunci oleh Admin.</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label small fw-bold text-primary">Kelas Utama / Base</label>
-                                    <select class="form-select border-primary" id="select-kelas-guru" onchange="syncKelasSiswa()" required>
+                                    <!-- Menambahkan atribut 'disabled' dan warna abu-abu -->
+                                    <select class="form-select border-secondary bg-light text-muted" id="select-kelas-guru" disabled>
                                         <option value="">-- Pilih Kelas --</option>
                                         <option value="Semua">Semua Kelas</option>
                                         <option value="1">Kelas 1</option>
@@ -942,6 +946,8 @@
                                         <option value="5">Kelas 5</option>
                                         <option value="6" selected>Kelas 6</option>
                                     </select>
+                                    <!-- Label peringatan gembok -->
+                                    <small class="text-danger mt-1 d-block" style="font-size: 0.7rem;"><i class="fas fa-lock me-1"></i> Hak akses dikunci oleh Admin.</small>
                                 </div>
                             </div>
                             <div class="text-end mt-3">
