@@ -2347,17 +2347,36 @@
                 }
             }
 
-            // --- FITUR BARU: Buka Gembok Kaldik Guru ---
+// --- FITUR BARU: Buka Gembok Kaldik Guru ---
             if(pageId === 'page-guru-kalender') {
-                // Cek apakah admin sudah klik sinkron di server
                 const isSynced = GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikSync === true;
-                
                 if(isSynced) {
                     document.getElementById('guru-kaldik-status-belum').style.display = 'none';
                     document.getElementById('guru-kaldik-status-sudah').style.display = 'block';
                 } else {
                     document.getElementById('guru-kaldik-status-belum').style.display = 'block';
                     document.getElementById('guru-kaldik-status-sudah').style.display = 'none';
+                }
+            }
+
+            // --- FITUR BARU: Ingatan Layar Kaldik Admin ---
+            if(pageId === 'page-admin-kalender') {
+                const isSynced = GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikSync === true;
+                if(isSynced) {
+                    // Jika sudah tersinkron, langsung tampilkan hasil dan sembunyikan kotak upload
+                    document.getElementById('upload-area-kaldik').style.display = 'none';
+                    document.getElementById('hasil-analisa-kaldik').style.display = 'block';
+                    
+                    // Kunci tombol sinkronnya
+                    const btnSinkron = document.getElementById('btn-sinkron-kaldik');
+                    if(btnSinkron) {
+                        btnSinkron.innerHTML = '<i class="fas fa-check me-1"></i> Tersinkron';
+                        btnSinkron.className = "btn btn-sm btn-primary fw-bold shadow-sm";
+                        btnSinkron.disabled = true;
+                    }
+                } else {
+                    document.getElementById('upload-area-kaldik').style.display = 'block';
+                    document.getElementById('hasil-analisa-kaldik').style.display = 'none';
                 }
             }
             // -------------------------------------------
@@ -2652,12 +2671,13 @@
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
             btn.disabled = true;
 
-            const payload = {
+        const payload = {
                 namaSekolah: document.getElementById('input-nama-sekolah').value,
                 namaKasek: document.getElementById('input-nama-kasek').value,
                 nipKasek: document.getElementById('input-nip-kasek').value,
                 tahunAjaran: document.getElementById('input-tahun-ajaran').value,
-                logoUrl: document.getElementById('preview-logo').src
+                logoUrl: document.getElementById('preview-logo').src,
+                kaldikSync: GLOBAL_DATA.profilSekolah.kaldikSync || false // Mengamankan status Kaldik
             };
 
             const res = await fetchAPI('updateProfilSekolah', payload);
