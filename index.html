@@ -2349,7 +2349,8 @@
 
 // --- FITUR BARU: Buka Gembok Kaldik Guru ---
             if(pageId === 'page-guru-kalender') {
-                const isSynced = GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikSync === true;
+                // Cek data dari Server (Toleransi teks "true") ATAU dari Ingatan Browser
+                const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
                 if(isSynced) {
                     document.getElementById('guru-kaldik-status-belum').style.display = 'none';
                     document.getElementById('guru-kaldik-status-sudah').style.display = 'block';
@@ -2361,7 +2362,8 @@
 
             // --- FITUR BARU: Ingatan Layar Kaldik Admin ---
             if(pageId === 'page-admin-kalender') {
-                const isSynced = GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikSync === true;
+                // Cek data dari Server (Toleransi teks "true") ATAU dari Ingatan Browser
+                const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
                 if(isSynced) {
                     // Jika sudah tersinkron, langsung tampilkan hasil dan sembunyikan kotak upload
                     document.getElementById('upload-area-kaldik').style.display = 'none';
@@ -3787,6 +3789,9 @@ async function simpanProfilGuru(e) {
             const res = await fetchAPI('updateProfilSekolah', GLOBAL_DATA.profilSekolah);
 
             if(res.success) {
+                // Tanamkan ingatan permanen di perangkat pengguna
+                localStorage.setItem('sagara_kaldik_sync', 'true');
+                
                 b.innerHTML = '<i class="fas fa-check me-1"></i> Tersinkron';
                 b.className = "btn btn-sm btn-primary fw-bold shadow-sm";
                 showToast('Kalender Pendidikan berhasil disinkronkan ke seluruh Guru!', 'success');
