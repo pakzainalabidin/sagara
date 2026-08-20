@@ -2988,6 +2988,8 @@ async function simpanProfilGuru(e) {
             const fS = document.getElementById('filter-kelas-siswa');
             const fP = document.getElementById('filter-kelas-presensi');
             const fN = document.getElementById('filter-kelas-nilai');
+            // FITUR BARU: Menarik dropdown Jadwal Pelajaran
+            const fJ = document.getElementById('filter-kelas-jadwal'); 
             
             const role = currentUser ? (currentUser.role || currentUser.jabatan) : '';
             const isAdmin = role && (role.toLowerCase().includes('admin') || role.toLowerCase().includes('kepala'));
@@ -3001,11 +3003,17 @@ async function simpanProfilGuru(e) {
                 <option value="5">Kelas 5</option>
                 <option value="6">Kelas 6</option>
             `;
+            
+            const opsiJadwal = `
+                <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
+                <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
+            `;
 
             if(isAdmin) {
                 if(fS) { fS.innerHTML = opsiLengkap; fS.disabled = false; }
                 if(fP) { fP.innerHTML = opsiLengkap; fP.disabled = false; }
                 if(fN) { fN.innerHTML = opsiLengkap; fN.disabled = false; }
+                if(fJ) { fJ.innerHTML = opsiJadwal; fJ.disabled = false; }
             } else {
                 const selectJabatan = document.getElementById('select-jabatan-guru');
                 const selectKelas = document.getElementById('select-kelas-guru');
@@ -3013,17 +3021,26 @@ async function simpanProfilGuru(e) {
                 const k = selectKelas ? selectKelas.value : '';
 
                 if(j === 'Guru Kelas' && k && k !== 'Semua') {
+                    // LOGIKA 1: Jika Guru Kelas, Gembok Semua Dropdown Sesuai Kelasnya
                     const optLocked = `<option value="${k}" selected>Kelas ${k}</option>`;
                     if(fS) { fS.innerHTML = optLocked; fS.disabled = true; }
                     if(fP) { fP.innerHTML = optLocked; fP.disabled = true; }
                     if(fN) { fN.innerHTML = optLocked; fN.disabled = true; }
+                    if(fJ) { fJ.innerHTML = optLocked; fJ.disabled = true; } // Jadwal Terkunci
                 } else {
+                    // LOGIKA 2: Jika Guru Mapel (PJOK, PAI, dll), Buka Semua Dropdown
                     if(fS) { fS.innerHTML = opsiLengkap; fS.value = k === 'Semua' || !k ? 'Semua' : k; fS.disabled = false; }
                     if(fP) { fP.innerHTML = opsiLengkap; fP.value = k === 'Semua' || !k ? 'Semua' : k; fP.disabled = false; }
                     if(fN) { fN.innerHTML = opsiLengkap; fN.value = k === 'Semua' || !k ? 'Semua' : k; fN.disabled = false; }
+                    if(fJ) { fJ.innerHTML = opsiJadwal; fJ.value = k === 'Semua' || !k ? '1' : k; fJ.disabled = false; } // Jadwal Bebas Pilih
                 }
             }
             filterTabelSiswa(); filterTabelPresensi(); filterTabelNilai(); syncCPFilters();
+            
+            // Render ulang jadwal jika layar jadwal sedang aktif
+            if(typeof renderJadwal === 'function' && document.getElementById('page-jadwal-pelajaran').style.display === 'block') {
+                renderJadwal();
+            }
         }
 
         function updateMapelNilai() {
