@@ -1587,6 +1587,9 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold">Jam Ke</label>
                             <select class="form-select" id="input-modal-jadwal-jam">
+                                <!-- FITUR BARU: Opsi Istirahat -->
+                                <option value="-">- (Istirahat)</option>
+                                
                                 <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
                                 <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
                             </select>
@@ -2416,11 +2419,15 @@
                     dataJadwal = dataJadwal.filter(j => j.hari === hariPilihan);
                 }
 
-                // Urutkan berdasar hari & jam secara otomatis
+               // Urutkan berdasar hari & urutan waktu secara otomatis
                 const urutanHari = { "Senin":1, "Selasa":2, "Rabu":3, "Kamis":4, "Jumat":5, "Sabtu":6 };
                 dataJadwal.sort((a, b) => {
                     if (urutanHari[a.hari] !== urutanHari[b.hari]) return urutanHari[a.hari] - urutanHari[b.hari];
-                    return parseInt(a.jam) - parseInt(b.jam);
+                    
+                    // Logika Cerdas: Mengurutkan tabel berdasarkan Waktu (misal 09:00) agar Istirahat tersusun rapi di tengah
+                    const waktuA = a.waktu ? a.waktu.split('-')[0].trim() : "";
+                    const waktuB = b.waktu ? b.waktu.split('-')[0].trim() : "";
+                    return waktuA.localeCompare(waktuB);
                 });
 
                 const role = currentUser ? (currentUser.role || currentUser.jabatan) : '';
