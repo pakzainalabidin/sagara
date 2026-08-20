@@ -1474,7 +1474,7 @@
                         <div class="col-6"><label class="form-label small fw-bold">Pekerjaan Ibu</label><input type="text" class="form-control" id="input-modal-kerja-ibu"></div>
                     </div>
                     <div class="mb-3"><label class="form-label small fw-bold">Alamat Lengkap</label><textarea class="form-control" id="input-modal-alamat" rows="2"></textarea></div>
-                    <div class="mb-3"><label class="form-label small fw-bold">Nomor Handphone</label><input type="number" class="form-control" id="input-modal-nohp"></div>
+                    <div class="mb-3"><label class="form-label small fw-bold">Nomor Handphone</label><input type="text" class="form-control" id="input-modal-nohp"></div>
                 </div>
                 <div class="modal-footer border-0 bg-light rounded-bottom p-3">
                     <button type="button" class="btn btn-secondary" onclick="tutupModalSiswa()">Batal</button>
@@ -1513,7 +1513,7 @@
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label small fw-bold">NIP / NUPTK</label>
-                            <input type="number" class="form-control" id="input-modal-guru-nip">
+                            <input type="text" class="form-control" id="input-modal-guru-nip">
                         </div>
                         <div class="col-6">
                             <label class="form-label small fw-bold">Jabatan / Role</label>
@@ -2764,16 +2764,16 @@ async function simpanProfilGuru(e) {
             btn.disabled = false;
         }
 
-        async function simpanGuruModal() {
+       async function simpanGuruModal() {
             // Mengambil nilai input
             const namaGuru = document.getElementById('input-modal-guru-nama').value.trim();
             const usernameGuru = document.getElementById('input-modal-guru-username').value.trim();
             const passGuru = document.getElementById('input-modal-guru-password').value.trim();
 
-            // SCRIPT ANTI-UNDEFINED (Validasi Data Kosong)
+            // Validasi Data Kosong
             if (!namaGuru || !usernameGuru || !passGuru) {
                 showToast('Gagal! Nama, Username, dan Password WAJIB diisi.', 'warning');
-                return; // Menghentikan proses jika ada yang kosong
+                return;
             }
 
             const btn = document.getElementById('btn-save-guru');
@@ -2792,8 +2792,10 @@ async function simpanProfilGuru(e) {
 
             if(payload.jabatan.includes('Kepala Sekolah')) payload.role = 'Admin';
 
-          if(res.success) {
-                // FITUR PERBAIKAN: Mencari berdasarkan ID agar saat diedit menimpa data yang benar, bukan menggandakan
+            const res = await fetchAPI('saveGuru', payload);
+            
+            if(res.success) {
+                // LOGIKA CERDAS: Cari berdasarkan ID, jika ada ditimpa (Edit), jika tidak ada ditambah (Baru)
                 const idx = GLOBAL_DATA.users.findIndex(u => u.id === payload.id);
                 if(idx > -1) {
                     GLOBAL_DATA.users[idx] = payload;
@@ -2801,24 +2803,27 @@ async function simpanProfilGuru(e) {
                     GLOBAL_DATA.users.push(payload);
                 }
                 
-                if (currentUser && currentUser.username === payload.username) {
+                // Jika yang diedit adalah diri sendiri, perbarui profil di pojok kanan atas
+                if (currentUser && currentUser.id === payload.id) {
                     currentUser = payload;
                     renderProfil();
                 }
 
+                // Segarkan tampilan tabel
                 renderTabelGuru();
                 if (typeof renderChatContacts === 'function') renderChatContacts();
                 
                 // Kosongkan form setelah berhasil tersimpan
+                document.getElementById('input-modal-guru-id').value = '';
                 document.getElementById('input-modal-guru-nama').value = '';
                 document.getElementById('input-modal-guru-username').value = '';
                 document.getElementById('input-modal-guru-password').value = '';
                 document.getElementById('input-modal-guru-nip').value = '';
 
                 tutupModalGuru();
-                showToast('Data Guru tersimpan & tersinkron!', 'success');
+                showToast('Data Guru berhasil disimpan!', 'success');
             } else {
-                showToast(res.message, 'error');
+                showToast('Gagal menyimpan: ' + res.message, 'error');
             }
             btn.innerHTML = '<i class="fas fa-check me-2"></i>Simpan Akun';
             btn.disabled = false;
