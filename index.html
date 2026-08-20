@@ -1624,9 +1624,9 @@
                             <label class="form-label small fw-bold">Tanggal</label>
                             <input type="date" class="form-control" id="input-modal-jurnal-tgl">
                         </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-bold">Kelas (Otomatis)</label>
-                            <input type="text" class="form-control bg-light text-muted fw-bold" id="input-modal-jurnal-kelas" readonly>
+                      <div class="col-6">
+                            <label class="form-label small fw-bold">Kelas Tujuan</label>
+                            <select class="form-select border-primary" id="input-modal-jurnal-kelas"></select>
                         </div>
                     </div>
                     <div class="row mb-3">
@@ -2792,11 +2792,14 @@ async function simpanProfilGuru(e) {
 
             if(payload.jabatan.includes('Kepala Sekolah')) payload.role = 'Admin';
 
-            const res = await fetchAPI('saveGuru', payload);
-            if(res.success) {
-                const idx = GLOBAL_DATA.users.findIndex(u => u.username === payload.username);
-                if(idx > -1) GLOBAL_DATA.users[idx] = payload;
-                else GLOBAL_DATA.users.push(payload);
+          if(res.success) {
+                // FITUR PERBAIKAN: Mencari berdasarkan ID agar saat diedit menimpa data yang benar, bukan menggandakan
+                const idx = GLOBAL_DATA.users.findIndex(u => u.id === payload.id);
+                if(idx > -1) {
+                    GLOBAL_DATA.users[idx] = payload;
+                } else {
+                    GLOBAL_DATA.users.push(payload);
+                }
                 
                 if (currentUser && currentUser.username === payload.username) {
                     currentUser = payload;
@@ -3372,6 +3375,27 @@ async function simpanProfilGuru(e) {
         }
 
         function tutupModalGuru() { document.getElementById('modalTambahGuru').style.display = 'none'; }
+
+        // FITUR BARU: Fungsi Hapus Guru ke Server
+        async function hapusGuru(username) {
+            if(!confirm("PERINGATAN: Yakin ingin menghapus akun guru ini secara permanen dari sistem?")) return;
+            
+            // Mengirim perintah hapus ke server Google Sheets
+            const res = await fetchAPI('deleteGuru', { username: username });
+            
+            if(res.success) {
+                // Hapus dari memori lokal agar langsung hilang dari layar
+                GLOBAL_DATA.users = GLOBAL_DATA.users.filter(u => u.username !== username);
+                
+                // Segarkan tampilan tabel dan daftar kontak obrolan
+                renderTabelGuru();
+                if (typeof renderChatContacts === 'function') renderChatContacts();
+                
+                showToast('Akun guru berhasil dihapus permanen!', 'success');
+            } else {
+                showToast('Gagal menghapus: ' + res.message, 'error');
+            }
+        }
 
         function tambahSiswaDummy() {
             document.getElementById('input-modal-id-siswa').value = '';
@@ -4404,15 +4428,36 @@ Materi Pembelajaran: ${mat}`;
         // ==========================================
         // FUNGSI JURNAL HARIAN GURU
         // ==========================================
-        function bukaModalJurnal() {
+       function bukaModalJurnal() {
             // 1. Set Tanggal Otomatis hari ini
             document.getElementById('input-modal-jurnal-tgl').value = new Date().toISOString().split('T')[0];
 
-            // 2. Set Kelas Otomatis dari Profil Guru
+            // 2. Logika Kelas Pintar (Terkunci vs Terbuka)
+            const selectJabatan = document.getElementById('select-jabatan-guru');
             const selectKelas = document.getElementById('select-kelas-guru');
+            const j = selectJabatan ? selectJabatan.value : '';
             const kelasBase = selectKelas ? selectKelas.value : '';
-            let displayKelas = kelasBase === 'Semua' ? 'Semua Kelas' : (kelasBase ? 'Kelas ' + kelasBase : '-');
-            document.getElementById('input-modal-jurnal-kelas').value = displayKelas;
+            
+            const modalKelas = document.getElementById('input-modal-jurnal-kelas');
+            
+            if (j === 'Guru Kelas' && kelasBase !== 'Semua') {
+                // Terkunci khusus untuk Guru Kelas
+                modalKelas.innerHTML = `<option value="Kelas ${kelasBase}">Kelas ${kelasBase}</option>`;
+                modalKelas.disabled = true;
+                modalKelas.classList.add('bg-light', 'text-muted');
+            } else {
+                // Terbuka bebas untuk Admin & Guru Mata Pelajaran (PJOK, PAI, dll)
+                modalKelas.innerHTML = `
+                    <option value="Kelas 1">Kelas 1</option>
+                    <option value="Kelas 2">Kelas 2</option>
+                    <option value="Kelas 3">Kelas 3</option>
+                    <option value="Kelas 4">Kelas 4</option>
+                    <option value="Kelas 5">Kelas 5</option>
+                    <option value="Kelas 6">Kelas 6</option>
+                `;
+                modalKelas.disabled = false;
+                modalKelas.classList.remove('bg-light', 'text-muted');
+            }
 
             // 3. Set List Mapel otomatis sesuai Jabatan Guru
             updateMapelJurnal();
