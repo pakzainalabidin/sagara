@@ -1569,7 +1569,13 @@
                     <h5 class="modal-title fw-bold m-0" style="font-size: 1.1rem;"><i class="fas fa-calendar-plus me-2"></i>Input Jadwal Pelajaran</h5>
                     <button type="button" class="btn-close btn-close-white" onclick="tutupModalJadwal()"></button>
                 </div>
-                <div class="modal-body p-4 text-start text-dark">
+               <div class="modal-body p-4 text-start text-dark">
+                    <!-- FITUR BARU: Indikator Kelas Terkunci -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-primary">Kelas Tujuan (Terkunci)</label>
+                        <input type="text" class="form-control border-primary bg-light text-muted fw-bold" id="input-modal-jadwal-kelas" readonly>
+                    </div>
+                    
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label small fw-bold">Hari</label>
