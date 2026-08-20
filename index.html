@@ -4316,11 +4316,20 @@ Materi Pembelajaran: ${mat}`;
         // FUNGSI JADWAL PELAJARAN & SINKRONISASI
         // ==========================================
         function bukaModalJadwal() {
+            // Tarik nilai kelas yang sedang dipilih di tabel latar belakang
+            const kelasAktif = document.getElementById('filter-kelas-jadwal').value;
+            
+            // Tampilkan dan kunci nilai tersebut di dalam PopUp
+            const modalKelas = document.getElementById('input-modal-jadwal-kelas');
+            if (modalKelas) {
+                modalKelas.value = "Kelas " + kelasAktif;
+            }
+
+            // Kosongkan form inputan lainnya
             document.getElementById('input-modal-jadwal-waktu').value = '';
             document.getElementById('input-modal-jadwal-mapel').value = '';
             document.getElementById('modalTambahJadwal').style.display = 'flex';
         }
-
         function tutupModalJadwal() {
             document.getElementById('modalTambahJadwal').style.display = 'none';
         }
