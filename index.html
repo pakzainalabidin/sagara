@@ -4351,19 +4351,33 @@ Materi Pembelajaran: ${mat}`;
         // ==========================================
         // FUNGSI JADWAL PELAJARAN & SINKRONISASI
         // ==========================================
-        function bukaModalJadwal() {
-            // Tarik nilai kelas yang sedang dipilih di tabel latar belakang
+       function bukaModalJadwal() {
+            // 1. Tarik nilai kelas dan hari yang sedang aktif di filter latar belakang
             const kelasAktif = document.getElementById('filter-kelas-jadwal').value;
+            const filterHariEl = document.getElementById('filter-hari-jadwal');
+            const hariAktif = filterHariEl ? filterHariEl.value : 'Semua';
             
-            // Tampilkan dan kunci nilai tersebut di dalam PopUp
+            // 2. Tampilkan dan kunci nilai Kelas di dalam PopUp
             const modalKelas = document.getElementById('input-modal-jadwal-kelas');
             if (modalKelas) {
                 modalKelas.value = "Kelas " + kelasAktif;
             }
 
-            // Kosongkan form inputan lainnya
+            // 3. FITUR BARU: Sesuaikan pilihan Hari otomatis
+            const modalHari = document.getElementById('input-modal-jadwal-hari');
+            if (modalHari) {
+                if (hariAktif !== 'Semua') {
+                    modalHari.value = hariAktif; // Jika filter aktif, ikuti harinya
+                } else {
+                    modalHari.value = 'Senin'; // Jika filter "Semua Hari", kembalikan ke Senin
+                }
+            }
+
+            // 4. Kosongkan form inputan lainnya agar bersih
+            document.getElementById('input-modal-jadwal-jam').value = '-'; // Kembali ke strip (istirahat) atau biarkan kosong
             document.getElementById('input-modal-jadwal-waktu').value = '';
             document.getElementById('input-modal-jadwal-mapel').value = '';
+            
             document.getElementById('modalTambahJadwal').style.display = 'flex';
         }
         function tutupModalJadwal() {
