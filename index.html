@@ -3456,17 +3456,22 @@ async function simpanProfilGuru(e) {
             document.getElementById('input-modal-nama').value = s.nama;
             document.getElementById('input-modal-jk').value = s.jk;
             
+            // FITUR PERBAIKAN: Memaksa baca sebagai teks (String) agar data lama tidak error
             const modalKelas = document.getElementById('input-modal-kelas');
-            const kelasNum = s.kelas.replace('Kelas ', '');
+            const kelasNum = s.kelas ? String(s.kelas).replace('Kelas ', '') : '1';
             modalKelas.innerHTML = `<option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
-            modalKelas.value = kelasNum; modalKelas.disabled = false; 
+            modalKelas.value = kelasNum; 
+            modalKelas.disabled = false; 
 
             document.getElementById('input-modal-ayah').value = s.namaAyah;
             document.getElementById('input-modal-kerja-ayah').value = s.kerjaAyah;
             document.getElementById('input-modal-ibu').value = s.namaIbu;
             document.getElementById('input-modal-kerja-ibu').value = s.kerjaIbu;
             document.getElementById('input-modal-alamat').value = s.alamat;
-            document.getElementById('input-modal-nohp').value = s.hp ? s.hp.replace(/'/g, '') : '';
+            
+            // FITUR PERBAIKAN: Memaksa konversi ke String sebelum dibersihkan tanda kutipnya
+            document.getElementById('input-modal-nohp').value = s.hp ? String(s.hp).replace(/'/g, '') : '';
+            
             document.getElementById('modalTambahSiswa').style.display = 'flex';
         }
         function tutupModalSiswa() { document.getElementById('modalTambahSiswa').style.display = 'none'; }
