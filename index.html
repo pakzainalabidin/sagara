@@ -2897,7 +2897,83 @@ async function simpanProfilGuru(e) {
             }
         }
 
-        function muatPresensiTanggal()
+        function muatPresensiTanggal() {
+            const tgl = document.getElementById('tanggal-presensi').value;
+            if(!tgl) return;
+
+            // FITUR BARU: Daftar Hari Libur Nasional 2026/2027 (Format YYYY-MM-DD)
+            const liburNasional = [
+                "2026-08-17", "2026-08-25", "2026-12-24", "2026-12-25",
+                "2027-01-01", "2027-01-05", "2027-02-06", "2027-03-09", 
+                "2027-03-10", "2027-03-11", "2027-03-26", "2027-03-28", 
+                "2027-05-01", "2027-05-06", "2027-05-17", "2027-05-20", 
+                "2027-06-01", "2027-06-06"
+            ];
+
+            const dateObj = new Date(tgl);
+            const isMinggu = dateObj.getDay() === 0; // 0 adalah indeks untuk hari Minggu
+            const isLiburNasional = liburNasional.includes(tgl);
+
+            const btnSimpan = document.getElementById('btn-simpan-presensi');
+            const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
+            
+            // --- LOGIKA JIKA HARI LIBUR / MINGGU ---
+            if (isMinggu || isLiburNasional) {
+                const ketLibur = isMinggu ? "Hari Minggu" : "Hari Libur Nasional";
+                showToast(`Tanggal ${tgl} adalah ${ketLibur}! Presensi ditutup.`, 'error');
+
+                // Blokir tabel menjadi merah dan matikan tombol
+                document.querySelectorAll('#body-presensi tr').forEach(row => {
+                    row.classList.add('table-danger'); // Beri warna merah pada baris
+                    
+                    const radios = row.querySelectorAll('.radio-absen');
+                    radios.forEach(r => {
+                        r.checked = false; // Kosongkan centang
+                        r.disabled = true; // Gembok tombol
+                    });
+                });
+
+                // Gembok tombol Simpan dan tombol PopUp
+                if(btnSimpan) btnSimpan.disabled = true;
+                if(btnInputModal) btnInputModal.disabled = true;
+
+                // Nol-kan angka statistik
+                if(document.getElementById('tot-hadir')) document.getElementById('tot-hadir').innerText = 0;
+                if(document.getElementById('tot-sakit')) document.getElementById('tot-sakit').innerText = 0;
+                if(document.getElementById('tot-izin')) document.getElementById('tot-izin').innerText = 0;
+                if(document.getElementById('tot-alfa')) document.getElementById('tot-alfa').innerText = 0;
+                if(document.getElementById('tot-persen')) document.getElementById('tot-persen').innerText = 0;
+                
+                return; // Hentikan proses, jangan muat data apapun
+            }
+
+            // --- LOGIKA JIKA HARI AKTIF (BUKAN LIBUR) ---
+            if(btnSimpan) btnSimpan.disabled = false;
+            if(btnInputModal) btnInputModal.disabled = false;
+            
+            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
+            
+            document.querySelectorAll('#body-presensi tr').forEach(row => {
+                row.classList.remove('table-danger'); // Hilangkan warna merah
+                
+                const nisn = row.getAttribute('data-nisn');
+                const radios = row.querySelectorAll('.radio-absen');
+                
+                radios.forEach(r => {
+                    r.disabled = false; // Buka gembok tombol
+                    r.checked = false; 
+                }); 
+
+                if(dataPresensi[nisn]) {
+                    const r = Array.from(radios).find(rad => rad.value === dataPresensi[nisn]);
+                    if(r) r.checked = true;
+                } else {
+                    if(radios[0]) radios[0].checked = true; // Set default ke 'Hadir' jika belum diisi
+                }
+            });
+            
+            filterTabelPresensi();
+        }
 
         async function simpanDataPresensi() {
             const btn = document.getElementById('btn-simpan-presensi');
