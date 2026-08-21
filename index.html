@@ -2800,11 +2800,20 @@ async function simpanProfilGuru(e) {
             const res = await fetchAPI('saveGuru', payload);
             
             if(res.success) {
-                // LOGIKA CERDAS: Cari berdasarkan ID, jika ada ditimpa (Edit), jika tidak ada ditambah (Baru)
-                const idx = GLOBAL_DATA.users.findIndex(u => u.id === payload.id);
+                // FITUR PERBAIKAN: Pencarian super ketat (Berdasarkan ID atau Username Lama)
+                const hiddenId = document.getElementById('input-modal-guru-id').value;
+                const idx = GLOBAL_DATA.users.findIndex(u => 
+                    (u.id && u.id === hiddenId) || 
+                    (u.username === hiddenId) || 
+                    (u.id === payload.id)
+                );
+                
                 if(idx > -1) {
+                    // Jika ketemu, pertahankan ID aslinya dan timpa datanya (Edit)
+                    payload.id = GLOBAL_DATA.users[idx].id || payload.id;
                     GLOBAL_DATA.users[idx] = payload;
                 } else {
+                    // Jika benar-benar tidak ketemu, barulah tambah sebagai baris guru baru
                     GLOBAL_DATA.users.push(payload);
                 }
                 
@@ -3370,7 +3379,7 @@ async function simpanProfilGuru(e) {
         }
 
         function editGuru(u) {
-            document.getElementById('input-modal-guru-id').value = u.id || '';
+            document.getElementById('input-modal-guru-id').value = u.id || u.username;
             document.getElementById('input-modal-guru-nama').value = u.nama;
             document.getElementById('input-modal-guru-username').value = u.username;
             document.getElementById('input-modal-guru-password').value = u.password;
