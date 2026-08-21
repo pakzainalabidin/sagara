@@ -1576,6 +1576,9 @@
                         <input type="text" class="form-control border-primary bg-light text-muted fw-bold" id="input-modal-jadwal-kelas" readonly>
                     </div>
                     
+                    <!-- FITUR BARU: ID Rahasia untuk Edit -->
+                    <input type="hidden" id="input-modal-jadwal-id">
+                    
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label small fw-bold">Hari</label>
@@ -2449,7 +2452,9 @@
                         <td><span class="badge bg-primary">Jam ke-${j.jam}</span></td>
                         <td>${j.waktu}</td>
                         <td class="text-start fw-bold">${j.mapel}</td>
-                        <td class="admin-action" style="display:${displayStyle};">
+                       <td class="admin-action" style="display:${displayStyle};">
+                            <!-- Tombol Edit Baru -->
+                            <button class="btn btn-sm btn-light text-primary me-1" onclick="editJadwal('${kelas}', '${j.id}')"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-sm btn-light text-danger" onclick="hapusJadwal('${kelas}', '${j.id}')"><i class="fas fa-trash"></i></button>
                         </td>
                     `;
@@ -4351,43 +4356,60 @@ Materi Pembelajaran: ${mat}`;
         // ==========================================
         // FUNGSI JADWAL PELAJARAN & SINKRONISASI
         // ==========================================
-       function bukaModalJadwal() {
-            // 1. Tarik nilai kelas dan hari yang sedang aktif di filter latar belakang
+      function bukaModalJadwal() {
             const kelasAktif = document.getElementById('filter-kelas-jadwal').value;
             const filterHariEl = document.getElementById('filter-hari-jadwal');
             const hariAktif = filterHariEl ? filterHariEl.value : 'Semua';
             
-            // 2. Tampilkan dan kunci nilai Kelas di dalam PopUp
             const modalKelas = document.getElementById('input-modal-jadwal-kelas');
-            if (modalKelas) {
-                modalKelas.value = "Kelas " + kelasAktif;
-            }
+            if (modalKelas) modalKelas.value = "Kelas " + kelasAktif;
 
-            // 3. FITUR BARU: Sesuaikan pilihan Hari otomatis
             const modalHari = document.getElementById('input-modal-jadwal-hari');
             if (modalHari) {
-                if (hariAktif !== 'Semua') {
-                    modalHari.value = hariAktif; // Jika filter aktif, ikuti harinya
-                } else {
-                    modalHari.value = 'Senin'; // Jika filter "Semua Hari", kembalikan ke Senin
-                }
+                if (hariAktif !== 'Semua') modalHari.value = hariAktif;
+                else modalHari.value = 'Senin'; 
             }
 
-            // 4. Kosongkan form inputan lainnya agar bersih
-            document.getElementById('input-modal-jadwal-jam').value = '-'; // Kembali ke strip (istirahat) atau biarkan kosong
+            // Kosongkan ID dan Form agar sistem tahu ini adalah jadwal BARU
+            document.getElementById('input-modal-jadwal-id').value = '';
+            document.getElementById('input-modal-jadwal-jam').value = '-'; 
             document.getElementById('input-modal-jadwal-waktu').value = '';
             document.getElementById('input-modal-jadwal-mapel').value = '';
             
             document.getElementById('modalTambahJadwal').style.display = 'flex';
         }
+
+        // FITUR BARU: Fungsi untuk menarik data lama ke dalam PopUp Edit
+        function editJadwal(kelas, id) {
+            if(!GLOBAL_DATA.jadwal || !GLOBAL_DATA.jadwal[kelas]) return;
+            
+            const jadwal = GLOBAL_DATA.jadwal[kelas].find(x => x.id === id);
+            if(!jadwal) return;
+
+            // Masukkan data lama ke form
+            document.getElementById('input-modal-jadwal-id').value = jadwal.id;
+            document.getElementById('input-modal-jadwal-hari').value = jadwal.hari;
+            document.getElementById('input-modal-jadwal-jam').value = jadwal.jam;
+            document.getElementById('input-modal-jadwal-waktu').value = jadwal.waktu;
+            document.getElementById('input-modal-jadwal-mapel').value = jadwal.mapel;
+
+            // Kunci kelasnya sesuai data
+            const modalKelas = document.getElementById('input-modal-jadwal-kelas');
+            if (modalKelas) modalKelas.value = "Kelas " + kelas;
+
+            document.getElementById('modalTambahJadwal').style.display = 'flex';
+        }
+
         function tutupModalJadwal() {
             document.getElementById('modalTambahJadwal').style.display = 'none';
         }
 
         function simpanJadwalModal() {
             const kelas = document.getElementById('filter-kelas-jadwal').value;
+            const jadwalId = document.getElementById('input-modal-jadwal-id').value; // Cek ID rahasia
+            
             const payload = {
-                id: 'jdw_' + Date.now(),
+                id: jadwalId || 'jdw_' + Date.now(), // Gunakan ID lama jika Edit, atau ID baru
                 hari: document.getElementById('input-modal-jadwal-hari').value,
                 jam: document.getElementById('input-modal-jadwal-jam').value,
                 waktu: document.getElementById('input-modal-jadwal-waktu').value,
@@ -4402,20 +4424,27 @@ Materi Pembelajaran: ${mat}`;
             if(!GLOBAL_DATA.jadwal) GLOBAL_DATA.jadwal = {};
             if(!GLOBAL_DATA.jadwal[kelas]) GLOBAL_DATA.jadwal[kelas] = [];
             
-            // Cek apakah hari dan jam tersebut sudah ada (timpa jika ada)
-            const existingIdx = GLOBAL_DATA.jadwal[kelas].findIndex(x => x.hari === payload.hari && x.jam === payload.jam);
-            if(existingIdx > -1) {
-                payload.id = GLOBAL_DATA.jadwal[kelas][existingIdx].id;
-                GLOBAL_DATA.jadwal[kelas][existingIdx] = payload;
+            // Cek apakah kita sedang MENGEDIT jadwal yang sudah ada
+            const editIdx = GLOBAL_DATA.jadwal[kelas].findIndex(x => x.id === payload.id);
+            
+            if(editIdx > -1) {
+                // Menimpa jadwal lama
+                GLOBAL_DATA.jadwal[kelas][editIdx] = payload;
             } else {
-                GLOBAL_DATA.jadwal[kelas].push(payload);
+                // Mengecek bentrok jam (kalau jam & hari sama pada input baru, otomatis ditimpa)
+                const conflictIdx = GLOBAL_DATA.jadwal[kelas].findIndex(x => x.hari === payload.hari && x.jam === payload.jam);
+                if(conflictIdx > -1) {
+                    payload.id = GLOBAL_DATA.jadwal[kelas][conflictIdx].id;
+                    GLOBAL_DATA.jadwal[kelas][conflictIdx] = payload;
+                } else {
+                    GLOBAL_DATA.jadwal[kelas].push(payload);
+                }
             }
 
             renderJadwal();
             tutupModalJadwal();
-            showToast('Jadwal tersimpan sementara. Jangan lupa klik "Sinkron"!', 'info');
+            showToast('Jadwal tersimpan. Jangan lupa klik tombol "Sinkron"!', 'info');
         }
-
         function hapusJadwal(kelas, id) {
             if(!confirm("Yakin ingin menghapus jadwal ini?")) return;
             if(GLOBAL_DATA.jadwal && GLOBAL_DATA.jadwal[kelas]) {
