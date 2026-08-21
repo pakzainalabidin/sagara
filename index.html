@@ -3609,8 +3609,8 @@ async function simpanProfilGuru(e) {
             });
         }
 
-        let adminChartInstance = null;
-        let adminPencapaianChartInstance = null;
+        var adminChartInstance = null;
+        var adminPencapaianChartInstance = null;
 
         function initAdminCharts() {
             const ctx1 = document.getElementById('adminChart');
@@ -3663,7 +3663,7 @@ async function simpanProfilGuru(e) {
             }
         }
 
-        let guruChartInstance = null;
+        var guruChartInstance = null;
         function initGuruCharts() {
             const ctx = document.getElementById('guruChart');
             if(!ctx) return;
