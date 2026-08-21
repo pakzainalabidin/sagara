@@ -2897,24 +2897,7 @@ async function simpanProfilGuru(e) {
             }
         }
 
-        function muatPresensiTanggal() {
-            const tgl = document.getElementById('tanggal-presensi').value;
-            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
-            
-            document.querySelectorAll('#body-presensi tr').forEach(row => {
-                const nisn = row.getAttribute('data-nisn');
-                const radios = row.querySelectorAll('.radio-absen');
-                radios.forEach(r => r.checked = false); 
-
-                if(dataPresensi[nisn]) {
-                    const r = Array.from(radios).find(rad => rad.value === dataPresensi[nisn]);
-                    if(r) r.checked = true;
-                } else {
-                    if(radios[0]) radios[0].checked = true; 
-                }
-            });
-            filterTabelPresensi();
-        }
+        function muatPresensiTanggal()
 
         async function simpanDataPresensi() {
             const btn = document.getElementById('btn-simpan-presensi');
@@ -3746,6 +3729,100 @@ async function simpanProfilGuru(e) {
             container.innerHTML = html;
         }
 
+        // FITUR BARU: Membuka PopUp Export PDF Presensi
+        function bukaModalExportPDF() {
+            // Set otomatis tanggal hari ini pada kolom input
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('export-tgl-mulai').value = today;
+            document.getElementById('export-tgl-akhir').value = today;
+            document.getElementById('modalExportPresensi').style.display = 'flex';
+        }
+
+        // FITUR BARU: Menutup PopUp Export PDF
+        function tutupModalExport() {
+            document.getElementById('modalExportPresensi').style.display = 'none';
+        }
+
+        // FITUR BARU: Proses Hitung & Cetak PDF Rekap Presensi
+        function prosesExportPDF() {
+            if(!window.jspdf) return showToast('Pustaka PDF belum termuat', 'error');
+            
+            const tglMulai = document.getElementById('export-tgl-mulai').value;
+            const tglAkhir = document.getElementById('export-tgl-akhir').value;
+            const fKelas = document.getElementById('filter-kelas-presensi').value;
+            
+            if(!tglMulai || !tglAkhir) {
+                showToast('Tanggal mulai dan akhir wajib diisi!', 'warning');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4'); 
+
+            doc.setFontSize(14);
+            const kelasText = fKelas === 'Semua' ? 'Semua Kelas' : 'Kelas ' + fKelas;
+            doc.text(`Rekapitulasi Presensi Siswa - ${kelasText}`, 40, 40);
+            doc.setFontSize(10);
+            doc.text(`Periode: ${tglMulai} s/d ${tglAkhir}`, 40, 60);
+
+            // Logika Cerdas: Mencari tanggal yang masuk dalam rentang pilihan
+            const dMulai = new Date(tglMulai);
+            const dAkhir = new Date(tglAkhir);
+            
+            let targetDates = Object.keys(GLOBAL_DATA.presensi || {}).filter(d => {
+                const dDate = new Date(d);
+                return dDate >= dMulai && dDate <= dAkhir;
+            });
+
+            let headRow = ['No', 'NISN', 'Nama Siswa', 'Hadir (H)', 'Sakit (S)', 'Izin (I)', 'Alfa (A)'];
+            const bodyData = [];
+            let no = 1;
+
+            // Menarik data siswa yang sedang tampil di layar
+            document.querySelectorAll('#body-presensi tr').forEach(row => {
+                if(row.style.display !== 'none') {
+                    const nisn = row.getAttribute('data-nisn');
+                    const nama = row.cells[2].innerText;
+                    
+                    let h = 0, s = 0, i = 0, a = 0;
+                    
+                    // Menghitung akumulasi absen sesuai rentang waktu
+                    targetDates.forEach(d => {
+                        const status = GLOBAL_DATA.presensi[d][nisn];
+                        if(status === 'H') h++;
+                        if(status === 'S') s++;
+                        if(status === 'I') i++;
+                        if(status === 'A') a++;
+                    });
+
+                    bodyData.push([no++, nisn, nama, h, s, i, a]);
+                }
+            });
+
+            if(bodyData.length === 0) {
+                showToast('Tidak ada data siswa untuk diekspor!', 'warning');
+                return;
+            }
+
+            // Menyusun Tabel PDF
+            doc.autoTable({
+                head: [headRow],
+                body: bodyData,
+                startY: 75,
+                styles: { fontSize: 9, cellPadding: 4, halign: 'center' },
+                columnStyles: { 
+                    1: { halign: 'left' }, 
+                    2: { halign: 'left' } 
+                },
+                headStyles: { fillColor: [25, 135, 84] }, // Warna Hijau Tema Presensi
+                theme: 'grid'
+            });
+
+            doc.save(`Rekap_Presensi_${kelasText.replace(/ /g, '_')}.pdf`);
+            tutupModalExport();
+            showToast('Rekap Presensi berhasil diunduh!', 'success');
+        }
+        
         function exportDataSiswaPDF() {
             if(!window.jspdf) return showToast('PDF Lib Error', 'error');
             const { jsPDF } = window.jspdf;
