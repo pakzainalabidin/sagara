@@ -2839,7 +2839,7 @@ async function simpanProfilGuru(e) {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
             btn.disabled = true;
 
-            const payload = {
+           const payload = {
                 id: document.getElementById('input-modal-id-siswa').value || 'siswa_' + Date.now(),
                 nisn: document.getElementById('input-modal-nisn').value || '-',
                 nama: document.getElementById('input-modal-nama').value,
@@ -2850,7 +2850,8 @@ async function simpanProfilGuru(e) {
                 namaIbu: document.getElementById('input-modal-ibu').value || '-',
                 kerjaIbu: document.getElementById('input-modal-kerja-ibu').value || '-',
                 alamat: document.getElementById('input-modal-alamat').value || '-',
-                hp: document.getElementById('input-modal-nohp').value || '-'
+                // FITUR BARU: Memaksa Google Sheets membaca ini sebagai teks dengan sisipan kutip tunggal
+                hp: document.getElementById('input-modal-nohp').value ? "'" + document.getElementById('input-modal-nohp').value.replace(/'/g, '') : '-'
             };
 
             if(!payload.nama) {
@@ -3465,7 +3466,7 @@ async function simpanProfilGuru(e) {
             document.getElementById('input-modal-ibu').value = s.namaIbu;
             document.getElementById('input-modal-kerja-ibu').value = s.kerjaIbu;
             document.getElementById('input-modal-alamat').value = s.alamat;
-            document.getElementById('input-modal-nohp').value = s.hp;
+            document.getElementById('input-modal-nohp').value = s.hp ? s.hp.replace(/'/g, '') : '';
             document.getElementById('modalTambahSiswa').style.display = 'flex';
         }
         function tutupModalSiswa() { document.getElementById('modalTambahSiswa').style.display = 'none'; }
