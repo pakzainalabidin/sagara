@@ -1441,7 +1441,7 @@
                     <input type="hidden" id="input-modal-id-siswa">
                     <div class="mb-3">
                         <label class="form-label small fw-bold">NISN</label>
-                        <input type="number" class="form-control" id="input-modal-nisn" placeholder="Masukkan NISN">
+                        <input type="text" class="form-control" id="input-modal-nisn" placeholder="Masukkan NISN">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Nama Lengkap Siswa <span class="text-danger">*</span></label>
@@ -2841,7 +2841,8 @@ async function simpanProfilGuru(e) {
 
            const payload = {
                 id: document.getElementById('input-modal-id-siswa').value || 'siswa_' + Date.now(),
-                nisn: document.getElementById('input-modal-nisn').value || '-',
+                // FITUR PERBAIKAN: Memaksa baca sebagai teks dengan sisipan kutip tunggal untuk NISN
+                nisn: document.getElementById('input-modal-nisn').value ? "'" + document.getElementById('input-modal-nisn').value.replace(/'/g, '') : '-',
                 nama: document.getElementById('input-modal-nama').value,
                 jk: document.getElementById('input-modal-jk').value,
                 kelas: "Kelas " + document.getElementById('input-modal-kelas').value,
@@ -3452,7 +3453,7 @@ async function simpanProfilGuru(e) {
 
         function editSiswa(s) {
             document.getElementById('input-modal-id-siswa').value = s.id;
-            document.getElementById('input-modal-nisn').value = s.nisn;
+            document.getElementById('input-modal-nisn').value = s.nisn ? String(s.nisn).replace(/'/g, '') : '';
             document.getElementById('input-modal-nama').value = s.nama;
             document.getElementById('input-modal-jk').value = s.jk;
             
