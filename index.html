@@ -2790,7 +2790,7 @@ async function simpanProfilGuru(e) {
                 nama: namaGuru,
                 username: usernameGuru,
                 password: passGuru,
-                nip: document.getElementById('input-modal-guru-nip').value || '-',
+                nip: document.getElementById('input-modal-guru-nip').value ? "'" + document.getElementById('input-modal-guru-nip').value.replace(/'/g, '') : '-',
                 jabatan: document.getElementById('input-modal-guru-jabatan').value,
                 role: 'Guru'
             };
@@ -3374,7 +3374,7 @@ async function simpanProfilGuru(e) {
             document.getElementById('input-modal-guru-nama').value = u.nama;
             document.getElementById('input-modal-guru-username').value = u.username;
             document.getElementById('input-modal-guru-password').value = u.password;
-            document.getElementById('input-modal-guru-nip').value = u.nip;
+            document.getElementById('input-modal-guru-nip').value = u.nip ? String(u.nip).replace(/'/g, '') : '';
             
             let realJabatan = u.jabatan;
             const roleSelect = document.getElementById('input-modal-guru-jabatan');
