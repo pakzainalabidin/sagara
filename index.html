@@ -3600,24 +3600,42 @@ async function simpanProfilGuru(e) {
 
         function filterTabelSiswa() {
             const val = document.getElementById('filter-kelas-siswa').value;
+            let no = 1; // FITUR BARU: Variabel untuk mereset nomor urut
             document.querySelectorAll('#body-data-siswa tr').forEach(r => {
-                r.style.display = (val === 'Semua' || r.getAttribute('data-kelas') === val) ? '' : 'none';
+                if(val === 'Semua' || r.getAttribute('data-kelas') === val) {
+                    r.style.display = '';
+                    r.cells[0].innerText = no++; // Update angka di kolom pertama
+                } else {
+                    r.style.display = 'none';
+                }
             });
             hitungStatistikSiswa();
         }
 
         function filterTabelPresensi() {
             const val = document.getElementById('filter-kelas-presensi').value;
+            let no = 1; // FITUR BARU: Variabel untuk mereset nomor urut
             document.querySelectorAll('#body-presensi tr').forEach(r => {
-                r.style.display = (val === 'Semua' || r.getAttribute('data-kelas') === val) ? '' : 'none';
+                if(val === 'Semua' || r.getAttribute('data-kelas') === val) {
+                    r.style.display = '';
+                    r.cells[0].innerText = no++; // Update angka di kolom pertama
+                } else {
+                    r.style.display = 'none';
+                }
             });
             hitungPresensi();
         }
 
         function filterTabelNilai() {
             const val = document.getElementById('filter-kelas-nilai').value;
+            let no = 1; // FITUR BARU: Variabel untuk mereset nomor urut
             document.querySelectorAll('#body-nilai tr').forEach(r => {
-                r.style.display = (val === 'Semua' || r.getAttribute('data-kelas') === val) ? '' : 'none';
+                if(val === 'Semua' || r.getAttribute('data-kelas') === val) {
+                    r.style.display = '';
+                    r.cells[0].innerText = no++; // Update angka di kolom pertama
+                } else {
+                    r.style.display = 'none';
+                }
             });
         }
 
