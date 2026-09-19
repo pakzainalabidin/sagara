@@ -430,9 +430,17 @@
             if (action === 'saveBuku') {
                 DUMMY_DB.buku = payload; return { success: true };
             }
+            if (action === 'deletePesanSatu') {
+    DUMMY_DB.pesan = DUMMY_DB.pesan.filter(p => p.id !== payload.id); 
+    return { success: true };
+}
+if (action === 'deletePesanBanyak') {
+    DUMMY_DB.pesan = DUMMY_DB.pesan.filter(p => !payload.ids.includes(p.id)); 
+    return { success: true };
+}
             
             return { success: true, data: {} };
-        }
+        } 
     </script>
 
     <div id="login-page">
@@ -618,14 +626,18 @@
                         </div>
                         
                         <div class="chat-main-area">
-                            <div class="p-3 border-bottom bg-white fw-bold d-flex align-items-center gap-3">
-                                <button class="btn btn-sm btn-light d-md-none" id="btn-back-chat" style="display: none;" onclick="tutupChatMobile()"><i class="fas fa-arrow-left"></i></button>
-                                <div class="chat-avatar" id="chat-header-avatar" style="width: 35px; height: 35px; font-size: 0.9rem;"><i class="fas fa-users"></i></div>
-                                <div>
-                                    <div class="mb-0 lh-1" id="chat-header-name">Grup Semua Guru</div>
-                                    <small class="text-success fw-normal" style="font-size: 0.7rem;">Ruang Publik</small>
-                                </div>
-                            </div>
+                           <div class="p-3 border-bottom bg-white fw-bold d-flex align-items-center gap-3">
+    <button class="btn btn-sm btn-light d-md-none" id="btn-back-chat" style="display: none;" onclick="tutupChatMobile()"><i class="fas fa-arrow-left"></i></button>
+    <div class="chat-avatar" id="chat-header-avatar" style="width: 35px; height: 35px; font-size: 0.9rem; flex-shrink: 0;"><i class="fas fa-users"></i></div>
+    <div style="flex-grow: 1; min-width: 0;">
+        <div class="mb-0 lh-1 text-truncate" id="chat-header-name">Grup Semua Guru</div>
+        <small class="text-success fw-normal text-truncate" id="chat-header-status" style="font-size: 0.7rem;">Ruang Publik</small>
+    </div>
+    <!-- Tombol Bersihkan Chat -->
+    <button class="btn btn-sm btn-outline-danger shadow-sm" onclick="hapusSemuaRiwayat()" title="Bersihkan Obrolan" style="flex-shrink: 0;">
+        <i class="fas fa-trash-alt"></i><span class="d-none d-md-inline ms-1"> Bersihkan</span>
+    </button>
+</div>
                             
                             <div class="chat-messages" id="chat-messages-container">
                                 <div class="text-center text-muted small my-3">Mulai percakapan...</div>
@@ -2181,44 +2193,55 @@
             document.getElementById('chat-sidebar-mobile').classList.remove('hide-mobile');
         }
 
-        function muatIsiChat() {
-            const container = document.getElementById('chat-messages-container');
-            container.innerHTML = '';
+       function muatIsiChat() {
+    const container = document.getElementById('chat-messages-container');
+    container.innerHTML = '';
 
-            let hasMessages = false;
+    let hasMessages = false;
+    
+    (GLOBAL_DATA.pesan || []).forEach(msg => {
+        const isGroupChat = activeChatUser === 'all' && msg.receiver === 'all';
+        const isPrivateChat = (msg.sender === currentUser.username && msg.receiver === activeChatUser) || 
+                              (msg.sender === activeChatUser && msg.receiver === currentUser.username);
+
+        if (isGroupChat || isPrivateChat) {
+            hasMessages = true;
+            const isMe = msg.sender === currentUser.username;
             
-            (GLOBAL_DATA.pesan || []).forEach(msg => {
-                const isGroupChat = activeChatUser === 'all' && msg.receiver === 'all';
-                const isPrivateChat = (msg.sender === currentUser.username && msg.receiver === activeChatUser) || 
-                                      (msg.sender === activeChatUser && msg.receiver === currentUser.username);
+            // Logika Cerdas: Admin atau Kepala Sekolah berhak menghapus pesan siapapun, Guru hanya pesannya sendiri
+            const isAdmin = currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.toLowerCase().includes('kepala'));
+            const canDelete = isMe || isAdmin; 
 
-                if (isGroupChat || isPrivateChat) {
-                    hasMessages = true;
-                    const isMe = msg.sender === currentUser.username;
-                    const timeStr = new Date(msg.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    
-                    let senderName = 'Saya';
-                    if(!isMe && isGroupChat) {
-                        const sUser = GLOBAL_DATA.users.find(u => u.username === msg.sender);
-                        senderName = sUser ? sUser.nama : msg.sender;
-                    }
-
-                    container.innerHTML += `
-                        <div class="msg-bubble ${isMe ? 'msg-me' : 'msg-other'} shadow-sm">
-                            ${!isMe && isGroupChat ? `<div class="fw-bold" style="font-size: 0.75rem; color: var(--primary); margin-bottom: 3px;">${senderName}</div>` : ''}
-                            ${msg.text}
-                            <div class="msg-info" style="color: ${isMe ? '#e2e8f0' : '#94a3b8'};">${timeStr}</div>
-                        </div>
-                    `;
-                }
-            });
-
-            if(!hasMessages) {
-                container.innerHTML = `<div class="text-center text-muted small my-auto"><i class="fas fa-comment-dots fa-3x opacity-25 mb-3"></i><br>Belum ada percakapan. Mulai kirim pesan!</div>`;
+            const timeStr = new Date(msg.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            let senderName = 'Saya';
+            if(!isMe && isGroupChat) {
+                const sUser = GLOBAL_DATA.users.find(u => u.username === msg.sender);
+                senderName = sUser ? sUser.nama : msg.sender;
             }
 
-            container.scrollTop = container.scrollHeight;
+            // Tombol Tong Sampah
+            const deleteIconColor = isMe ? 'text-white opacity-75' : 'text-danger opacity-50';
+            const deleteBtn = canDelete ? `<i class="fas fa-trash cursor-pointer ${deleteIconColor}" style="position: absolute; top: 10px; right: 12px; font-size: 0.8rem;" onclick="hapusPesanSatu(${msg.id})" title="Hapus Pesan"></i>` : '';
+
+            // padding-right diperbesar agar teks tidak tertimpa ikon tong sampah
+            container.innerHTML += `
+                <div class="msg-bubble ${isMe ? 'msg-me' : 'msg-other'} shadow-sm" style="padding-right: 35px;">
+                    ${deleteBtn}
+                    ${!isMe && isGroupChat ? `<div class="fw-bold" style="font-size: 0.75rem; color: var(--primary); margin-bottom: 3px;">${senderName}</div>` : ''}
+                    ${msg.text}
+                    <div class="msg-info" style="color: ${isMe ? '#e2e8f0' : '#94a3b8'};">${timeStr}</div>
+                </div>
+            `;
         }
+    });
+
+    if(!hasMessages) {
+        container.innerHTML = `<div class="text-center text-muted small my-auto"><i class="fas fa-comment-dots fa-3x opacity-25 mb-3"></i><br>Belum ada percakapan. Mulai kirim pesan!</div>`;
+    }
+
+    container.scrollTop = container.scrollHeight;
+}
 
         async function kirimPesan() {
             const input = document.getElementById('chat-input-text');
@@ -2248,6 +2271,53 @@
             }
         }
 
+        async function hapusPesanSatu(idPesan) {
+    if(!confirm("Yakin ingin menghapus pesan ini?")) return;
+    
+    // 1. Hapus dari memori lokal (Tampilan langsung hilang)
+    GLOBAL_DATA.pesan = GLOBAL_DATA.pesan.filter(p => p.id !== idPesan);
+    muatIsiChat();
+    
+    // 2. Kirim perintah ke Server (Google Apps Script) untuk dibersihkan
+    const res = await fetchAPI('deletePesanSatu', { id: idPesan });
+    if(res.success) {
+        showToast("Pesan dihapus permanen", 'success');
+    } else {
+        showToast("Gagal menghapus di server: " + res.message, 'error');
+    }
+}
+
+async function hapusSemuaRiwayat() {
+    if(!confirm("PERINGATAN: Yakin ingin membersihkan SEMUA riwayat obrolan di ruang ini? Tindakan ini akan menghapus chat di server juga.")) return;
+    
+    let idsToDelete = [];
+    
+    // 1. Cari pesan mana saja yang harus dihapus, dan hapus dari UI
+    GLOBAL_DATA.pesan = GLOBAL_DATA.pesan.filter(msg => {
+        const isGroupChat = activeChatUser === 'all' && msg.receiver === 'all';
+        const isPrivateChat = (msg.sender === currentUser.username && msg.receiver === activeChatUser) || 
+                              (msg.sender === activeChatUser && msg.receiver === currentUser.username);
+        
+        if (isGroupChat || isPrivateChat) {
+            idsToDelete.push(msg.id);
+            return false; // Hapus pesan ini dari array lokal
+        }
+        return true; // Pertahankan pesan dari ruang chat lain
+    });
+    
+    muatIsiChat();
+    
+    if (idsToDelete.length === 0) return;
+    
+    // 2. Kirim kumpulan ID ke server untuk dibersihkan massal
+    const res = await fetchAPI('deletePesanBanyak', { ids: idsToDelete });
+    if(res.success) {
+        showToast("Ruang obrolan berhasil dibersihkan!", 'success');
+    } else {
+        showToast("Gagal membersihkan di server: " + res.message, 'error');
+    }
+}
+        
         function renderBukuMapel() {
             const categories = [
                 { id: 'umum', title: 'Guru Kelas (Tematik/Umum)', color: 'primary' },
