@@ -2646,7 +2646,7 @@ async function hapusSemuaRiwayat() {
                     <td>${u.jabatan || 'Guru'}</td>
                     <td><span class="badge bg-success">Active</span></td>
                     <td class="text-center admin-action" style="display:${currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.includes('Kepala Sekolah')) ? 'table-cell' : 'none'}">
-                        <button class="btn btn-sm btn-light text-primary" onclick='editGuru(${JSON.stringify(u)})'><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-light text-primary" onclick="siapkanEditGuru('${u.username}')"><i class="fas fa-edit"></i></button>
                         ${isKasek || u.username === 'admin' ? '' : `<button class="btn btn-sm btn-light text-danger" onclick="hapusGuru('${u.username}')"><i class="fas fa-trash"></i></button>`}
                     </td>
                 `;
@@ -2677,7 +2677,7 @@ async function hapusSemuaRiwayat() {
                     <td>${s.jk}</td><td>${s.kelas}</td><td>${s.namaAyah}</td><td>${s.kerjaAyah}</td>
                     <td>${s.namaIbu}</td><td>${s.kerjaIbu}</td><td>${s.alamat}</td><td>${s.hp}</td>
                     <td class="admin-action" style="display:${displayStyle};">
-                        <button class="btn btn-sm btn-light text-primary" onclick='editSiswa(${JSON.stringify(s)})'><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-light text-primary" onclick="siapkanEditSiswa('${s.id}')"><i class="fas fa-edit"></i></button>
                         <button class="btn btn-sm btn-light text-danger" onclick="hapusSiswaGlobal('${s.id}')"><i class="fas fa-trash"></i></button>
                     </td>
                 `;
@@ -3587,6 +3587,18 @@ async function simpanProfilGuru(e) {
             }
 
             document.getElementById('modalTambahSiswa').style.display = 'flex';
+        }
+
+        // FITUR PERBAIKAN: Mencari data Siswa dengan aman di belakang layar
+        function siapkanEditSiswa(id) {
+            const s = GLOBAL_DATA.siswa.find(x => x.id === id);
+            if(s) editSiswa(s);
+        }
+
+        // FITUR PERBAIKAN: Mencari data Guru dengan aman di belakang layar
+        function siapkanEditGuru(username) {
+            const u = GLOBAL_DATA.users.find(x => x.username === username);
+            if(u) editGuru(u);
         }
 
         function editSiswa(s) {
