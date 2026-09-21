@@ -643,14 +643,22 @@ if (action === 'deletePesanBanyak') {
                                 <div class="text-center text-muted small my-3">Mulai percakapan...</div>
                             </div>
                             
-                            <div class="chat-input-box">
-                                <input type="text" class="form-control border-secondary rounded-pill" id="chat-input-text" placeholder="Ketik pesan Anda disini..." onkeypress="if(event.key === 'Enter') kirimPesan()">
-                                <button class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;" onclick="kirimPesan()">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                            <div class="chat-input-box position-relative">
+    <!-- Tombol Buka Panel Emoji -->
+    <button class="btn btn-light rounded-circle d-flex align-items-center justify-content-center" id="btn-emoji" onclick="toggleEmojiPicker()" style="width: 45px; height: 45px; flex-shrink: 0; border: 1px solid #e2e8f0;">
+        <i class="far fa-smile text-secondary fs-5"></i>
+    </button>
+    
+    <input type="text" class="form-control border-secondary rounded-pill px-3" id="chat-input-text" placeholder="Ketik pesan Anda disini..." onkeypress="if(event.key === 'Enter') kirimPesan()">
+    
+    <button class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; flex-shrink: 0;" onclick="kirimPesan()">
+        <i class="fas fa-paper-plane"></i>
+    </button>
+
+    <!-- Panel Popup Emoji (Tersembunyi secara default) -->
+    <div id="emoji-picker" class="shadow border rounded bg-white p-2" style="display: none; position: absolute; bottom: 70px; left: 15px; width: 280px; z-index: 100; grid-template-columns: repeat(6, 1fr); gap: 5px;">
+    </div>
+</div>
                 </div>
 
                 <div id="page-profil-sekolah" class="page-content" style="display: none;">
@@ -2242,7 +2250,7 @@ if (action === 'deletePesanBanyak') {
 
     container.scrollTop = container.scrollHeight;
 }
-
+        
         async function kirimPesan() {
             const input = document.getElementById('chat-input-text');
             const teks = input.value.trim();
@@ -2271,6 +2279,60 @@ if (action === 'deletePesanBanyak') {
             }
         }
 
+        // Daftar Emoji Populer
+const kumpulanEmoji = ['😀','😂','🥰','😍','🙏','👍','😭','🔥','🎉','👏','🤔','😅','😡','😱','💩','👀','💯','✨', '❤️', '💡', '✅', '❌', '🚀', '⭐'];
+
+// Fungsi membangun isi panel emoji
+function initEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    if(!picker) return;
+    picker.innerHTML = '';
+    kumpulanEmoji.forEach(em => {
+        const span = document.createElement('span');
+        span.className = 'cursor-pointer fs-5 text-center p-1 rounded transition-all';
+        span.style.userSelect = 'none';
+        span.innerText = em;
+        // Efek hover sederhana
+        span.onmouseover = () => span.style.backgroundColor = '#f1f5f9';
+        span.onmouseout = () => span.style.backgroundColor = 'transparent';
+        
+        // Ketika emoji diklik, masukkan ke kolom teks
+        span.onclick = (e) => {
+            e.stopPropagation(); // Mencegah panel tiba-tiba tertutup saat emoji diklik
+            const input = document.getElementById('chat-input-text');
+            input.value += em;
+            input.focus();
+        };
+        picker.appendChild(span);
+    });
+}
+
+// Fungsi memunculkan/menyembunyikan panel
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emoji-picker');
+    if (picker.style.display === 'none' || picker.style.display === '') {
+        // PERBAIKAN: Mengecek jumlah elemen. Kebal terhadap spasi/enter di HTML!
+        if(picker.children.length === 0) initEmojiPicker(); 
+        picker.style.display = 'grid';
+    } else {
+        picker.style.display = 'none';
+    }
+}
+
+// Fitur Cerdas: Tutup panel otomatis jika klik di luar kotak emoji
+document.addEventListener('click', function(e) {
+    const picker = document.getElementById('emoji-picker');
+    const btn = document.getElementById('btn-emoji');
+    if (picker && picker.style.display === 'grid') {
+        const isClickInsidePicker = picker.contains(e.target);
+        const isClickOnButton = btn ? btn.contains(e.target) : false;
+        
+        if (!isClickInsidePicker && !isClickOnButton) {
+            picker.style.display = 'none';
+        }
+    }
+});
+        
         async function hapusPesanSatu(idPesan) {
     if(!confirm("Yakin ingin menghapus pesan ini?")) return;
     
