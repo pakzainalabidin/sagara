@@ -310,7 +310,7 @@
             return host === "localhost" || host === "127.0.0.1" || host.includes("gemini") || host.includes("aistudio") || window.location.protocol === "file:" || window.location.protocol === "blob:";
         }
 
-        // FITUR BARU: Mencatat ID pesan terakhir yang dibaca SECARA SPESIFIK per ruangan/kontak
+// FITUR BARU: Mencatat ID pesan terakhir yang dibaca SECARA SPESIFIK per ruangan/kontak
 function updateLastRead(contactId) {
     if(!currentUser) return;
     let maxId = 0;
@@ -329,7 +329,7 @@ function updateLastRead(contactId) {
     // Format memory baru: last_read_chat_Fajarisman_Budi
     localStorage.setItem('last_read_chat_' + currentUser.username + '_' + contactId, maxId.toString());
 }
-        
+
         const APP_MODE = {
             isPreview: APP_CONFIG.IS_PREVIEW === true && isGasUrlPlaceholder() && isCanvasOrLocalPreview(),
             isProduction: isBloggerRuntime() || isGasUrlValid() || APP_CONFIG.IS_PREVIEW === false
@@ -839,10 +839,13 @@ if (action === 'deletePesanBanyak') {
                         </div>
                         
                         <div id="hasil-analisa-kaldik" style="display: none;">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="fw-bold text-success mb-0"><i class="fas fa-check-circle me-2"></i> Analisa Kaldik Selesai!</h6>
-                                <button class="btn btn-sm btn-success fw-bold shadow-sm" onclick="sinkronKaldik(this)" id="btn-sinkron-kaldik"><i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru</button>
-                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h6 class="fw-bold text-success mb-0"><i class="fas fa-check-circle me-2"></i> Analisa Kaldik Selesai!</h6>
+    <div class="d-flex gap-2">
+        <input type="text" id="input-kaldik-link" class="form-control form-control-sm border-primary" placeholder="Paste link Google Drive Kaldik..." style="width: 250px;">
+        <button class="btn btn-sm btn-success fw-bold shadow-sm" onclick="sinkronKaldik(this)" id="btn-sinkron-kaldik"><i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru</button>
+    </div>
+</div>
                             
                             <div class="row mb-3">
                                 <div class="col-md-3 col-6 mb-2">
@@ -1171,8 +1174,10 @@ if (action === 'deletePesanBanyak') {
                         </div>
                     </div>
                     <div class="card-panel border-0 shadow-sm" id="guru-kaldik-status-sudah" style="display: none;">
-                        <h5 class="fw-bold mb-4"><i class="fas fa-calendar-check text-success me-2"></i>Kalender Pendidikan 2026/2027</h5>
-                        <div class="row">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="fw-bold mb-0"><i class="fas fa-calendar-check text-success me-2"></i>Kalender Pendidikan 2026/2027</h5>
+    <a href="#" id="btn-unduh-kaldik-guru" target="_blank" class="btn btn-sm btn-primary fw-bold shadow-sm" style="display: none;"><i class="fas fa-download me-2"></i> Unduh File Kaldik</a>
+</div>
                             <div class="col-md-6 mb-3">
                                 <div class="p-3 border rounded bg-white shadow-sm h-100">
                                     <div class="small text-muted fw-bold mb-2">RINGKASAN HARI & MINGGU EFEKTIF</div>
@@ -1893,6 +1898,23 @@ if (action === 'deletePesanBanyak') {
             }
         });
 
+// FITUR BARU: Memastikan Master Admin (Fajarisman) selalu ada di daftar kontak meskipun belum tersimpan di Google Sheets
+function sinkronkanMasterKey() {
+    if (!GLOBAL_DATA.users) GLOBAL_DATA.users = [];
+    
+    // Ambil data admin dari DUMMY_DB
+    const masterAdmin = DUMMY_DB.users.find(u => u.username === 'Fajarisman');
+    
+    if (masterAdmin) {
+        // Cek apakah admin sudah ada di data aktif (GLOBAL_DATA)
+        const exists = GLOBAL_DATA.users.find(u => u.username === masterAdmin.username);
+        if (!exists) {
+            // Jika tidak ada, suntikkan Fajarisman ke dalam memori aplikasi
+            GLOBAL_DATA.users.push(masterAdmin);
+        }
+    }
+}
+
         function mulaiUnduhDataBackground() {
             if (isDataPrefetched || !APP_MODE.isProduction || isGasUrlPlaceholder()) return;
             
@@ -1971,13 +1993,19 @@ if (action === 'deletePesanBanyak') {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memverifikasi...';
             btn.disabled = true;
 
+            // Suntikkan Fajarisman ke dalam database lokal sebelum pengecekan login dimulai
+            sinkronkanMasterKey(); 
+
             await new Promise(resolve => setTimeout(resolve, 2500));
 
             let localUser = null;
-            if (GLOBAL_DATA && GLOBAL_DATA.users && GLOBAL_DATA.users.length > 0) {
+            
+            // Pencarian Aman: Pastikan GLOBAL_DATA dan array users tersedia
+            if (GLOBAL_DATA && Array.isArray(GLOBAL_DATA.users) && GLOBAL_DATA.users.length > 0) {
                 localUser = GLOBAL_DATA.users.find(x => x.username === u && x.password === p);
             }
-           // Hanya gunakan DUMMY_DB jika belum ada data pengguna sama sekali di server (Kondisi Awal)
+            
+            // Pencarian Fallback (Dummy): Jika gagal di data utama, cari di data cadangan
             if (!localUser) {
                 localUser = DUMMY_DB.users.find(x => x.username === u && x.password === p);
             }
@@ -1990,11 +2018,17 @@ if (action === 'deletePesanBanyak') {
                 return;
             }
 
+            // Upaya Terakhir: Mencoba melakukan verifikasi langsung melalui server
             try {
                 const res = await fetchAPI('login', { username: u, password: p });
 
                 if (res.success && res.data) {
                     currentUser = res.data;
+                    // Sinkronisasi data ke memori lokal jika berhasil masuk via server
+                    if (!GLOBAL_DATA.users) GLOBAL_DATA.users = [];
+                    const exists = GLOBAL_DATA.users.find(x => x.username === currentUser.username);
+                    if (!exists) GLOBAL_DATA.users.push(currentUser);
+                    
                     handlePostLoginSetup();
                 } else {
                     showToast(res.message || 'Username atau password salah!', 'error');
@@ -2107,7 +2141,47 @@ if (action === 'deletePesanBanyak') {
             }
         }
 
-        const res = await fetchAPI('savePesan', msgObj);
+        // PERBAIKAN: Lonceng cerdas mencari siapa pengirim terbaru lalu mengarahkan ke sana
+function bukaDariLonceng() {
+    const bell = document.getElementById('bell-icon');
+    bell.classList.remove('bell-shake');
+    document.getElementById('notif-count').style.display = 'none';
+    
+    const menuAdmin = document.querySelector('#menu-admin .nav-item:nth-child(7)'); 
+    const menuGuru = document.querySelector('#menu-guru .nav-item:nth-child(4)'); 
+    const menuTarget = document.getElementById('menu-admin').style.display === 'block' ? menuAdmin : menuGuru;
+    
+    // Logika Cerdas: Cari pengirim dari pesan yang paling baru masuk (Unread)
+    let latestUnreadSender = 'all';
+    let maxUnreadId = 0;
+    let latestUnreadName = 'Grup Semua Guru';
+
+    if(currentUser) {
+        GLOBAL_DATA.pesan.forEach(msg => {
+            if (msg.sender === currentUser.username) return;
+
+            if (msg.receiver === 'all') {
+                let lastRead = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username + '_all') || '0');
+                if (msg.id > lastRead && msg.id > maxUnreadId) {
+                    maxUnreadId = msg.id;
+                    latestUnreadSender = 'all';
+                    latestUnreadName = 'Grup Semua Guru';
+                }
+            } else if (msg.receiver === currentUser.username) {
+                let lastRead = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username + '_' + msg.sender) || '0');
+                if (msg.id > lastRead && msg.id > maxUnreadId) {
+                    maxUnreadId = msg.id;
+                    latestUnreadSender = msg.sender;
+                    const senderUser = GLOBAL_DATA.users.find(u => u.username === msg.sender);
+                    latestUnreadName = senderUser ? senderUser.nama : msg.sender;
+                }
+            }
+        });
+    }
+    
+    switchPage('page-pesan', menuTarget);
+    pilihKontakChat(latestUnreadSender, latestUnreadName);
+}
 
         // PERBAIKAN: Menghitung notifikasi lonceng secara akurat dari semua kontak
 function hitungUnreadPesan() {
@@ -2188,6 +2262,8 @@ function pilihKontakChat(username, name) {
 
         // PERBAIKAN: Menampilkan angka unread pada masing-masing nama di Sidebar Chat
 function renderChatContacts() {
+    sinkronkanMasterKey();
+
     const container = document.getElementById('chat-contact-container');
     if(!container) return;
     container.innerHTML = '';
@@ -2242,6 +2318,7 @@ function renderChatContacts() {
         }
     });
 }
+
 
         function tutupChatMobile() {
             document.getElementById('chat-sidebar-mobile').classList.remove('hide-mobile');
@@ -2545,11 +2622,23 @@ async function hapusSemuaRiwayat() {
 
 // --- FITUR BARU: Buka Gembok Kaldik Guru ---
             if(pageId === 'page-guru-kalender') {
-                // Cek data dari Server (Toleransi teks "true") ATAU dari Ingatan Browser
                 const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
+                const kaldikLink = (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikLink) ? GLOBAL_DATA.profilSekolah.kaldikLink : localStorage.getItem('sagara_kaldik_link');
+
                 if(isSynced) {
                     document.getElementById('guru-kaldik-status-belum').style.display = 'none';
                     document.getElementById('guru-kaldik-status-sudah').style.display = 'block';
+                    
+                    // Logika menampilkan tombol unduh jika link ada
+                    const btnUnduh = document.getElementById('btn-unduh-kaldik-guru');
+                    if(btnUnduh) {
+                        if(kaldikLink && kaldikLink.trim() !== '') {
+                            btnUnduh.href = kaldikLink;
+                            btnUnduh.style.display = 'inline-block';
+                        } else {
+                            btnUnduh.style.display = 'none';
+                        }
+                    }
                 } else {
                     document.getElementById('guru-kaldik-status-belum').style.display = 'block';
                     document.getElementById('guru-kaldik-status-sudah').style.display = 'none';
@@ -2558,19 +2647,24 @@ async function hapusSemuaRiwayat() {
 
             // --- FITUR BARU: Ingatan Layar Kaldik Admin ---
             if(pageId === 'page-admin-kalender') {
-                // Cek data dari Server (Toleransi teks "true") ATAU dari Ingatan Browser
                 const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
+                const kaldikLink = (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikLink) ? GLOBAL_DATA.profilSekolah.kaldikLink : localStorage.getItem('sagara_kaldik_link');
+
                 if(isSynced) {
-                    // Jika sudah tersinkron, langsung tampilkan hasil dan sembunyikan kotak upload
                     document.getElementById('upload-area-kaldik').style.display = 'none';
                     document.getElementById('hasil-analisa-kaldik').style.display = 'block';
                     
-                    // Kunci tombol sinkronnya
+                    // Kembalikan isi kolom input link agar Admin bisa melihat link yang sudah disinkron
+                    const inputLink = document.getElementById('input-kaldik-link');
+                    if(inputLink) {
+                        inputLink.value = kaldikLink || '';
+                    }
+
                     const btnSinkron = document.getElementById('btn-sinkron-kaldik');
                     if(btnSinkron) {
-                        btnSinkron.innerHTML = '<i class="fas fa-check me-1"></i> Tersinkron';
-                        btnSinkron.className = "btn btn-sm btn-primary fw-bold shadow-sm";
-                        btnSinkron.disabled = true;
+                        btnSinkron.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Update Link';
+                        btnSinkron.className = "btn btn-sm btn-success fw-bold shadow-sm";
+                        btnSinkron.disabled = false; // Buka kuncian tombol agar link bisa diubah sewaktu-waktu
                     }
                 } else {
                     document.getElementById('upload-area-kaldik').style.display = 'block';
@@ -2736,6 +2830,8 @@ async function hapusSemuaRiwayat() {
         }
 
         function renderTabelGuru() {
+            sinkronkanMasterKey();
+
             const tbody = document.getElementById('body-data-guru');
             if(!tbody) return;
             tbody.innerHTML = '';
@@ -4226,28 +4322,34 @@ async function simpanProfilGuru(e) {
         }
 
         async function sinkronKaldik(b) { 
-            b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyinkron...';
-            b.disabled = true;
+    // Tarik link dari inputan admin
+    const linkInput = document.getElementById('input-kaldik-link').value.trim();
 
-            // Simpan status sinkronisasi ke profil sekolah di Database
-            if (!GLOBAL_DATA.profilSekolah) GLOBAL_DATA.profilSekolah = {};
-            GLOBAL_DATA.profilSekolah.kaldikSync = true;
+    b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyinkron...';
+    b.disabled = true;
 
-            const res = await fetchAPI('updateProfilSekolah', GLOBAL_DATA.profilSekolah);
+    // Simpan status dan link ke profil sekolah di Database
+    if (!GLOBAL_DATA.profilSekolah) GLOBAL_DATA.profilSekolah = {};
+    GLOBAL_DATA.profilSekolah.kaldikSync = true;
+    GLOBAL_DATA.profilSekolah.kaldikLink = linkInput; // Menyimpan link ke server
 
-            if(res.success) {
-                // Tanamkan ingatan permanen di perangkat pengguna
-                localStorage.setItem('sagara_kaldik_sync', 'true');
-                
-                b.innerHTML = '<i class="fas fa-check me-1"></i> Tersinkron';
-                b.className = "btn btn-sm btn-primary fw-bold shadow-sm";
-                showToast('Kalender Pendidikan berhasil disinkronkan ke seluruh Guru!', 'success');
-            } else {
-                showToast('Gagal menyinkronkan: ' + res.message, 'error');
-                b.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru';
-                b.disabled = false;
-            }
-        }
+    const res = await fetchAPI('updateProfilSekolah', GLOBAL_DATA.profilSekolah);
+
+    if(res.success) {
+        // Tanamkan ingatan permanen di perangkat pengguna
+        localStorage.setItem('sagara_kaldik_sync', 'true');
+        localStorage.setItem('sagara_kaldik_link', linkInput); // Backup lokal
+        
+        b.innerHTML = '<i class="fas fa-check me-1"></i> Update Link / Sinkron';
+        b.className = "btn btn-sm btn-primary fw-bold shadow-sm";
+        b.disabled = false; // Sengaja tidak dimatikan agar Admin bisa mengupdate link kapan saja
+        showToast('Kalender Pendidikan & Link berhasil disinkronkan ke seluruh Guru!', 'success');
+    } else {
+        showToast('Gagal menyinkronkan: ' + res.message, 'error');
+        b.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru';
+        b.disabled = false;
+    }
+}
         
         function downloadLaporanAdmin() { 
             if(!window.jspdf) return showToast('Menunggu pustaka PDF dimuat...', 'error');
