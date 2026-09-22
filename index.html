@@ -840,12 +840,12 @@ if (action === 'deletePesanBanyak') {
                         
                         <div id="hasil-analisa-kaldik" style="display: none;">
                             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h6 class="fw-bold text-success mb-0"><i class="fas fa-check-circle me-2"></i> Analisa Kaldik Selesai!</h6>
-    <div class="d-flex gap-2">
-        <input type="text" id="input-kaldik-link" class="form-control form-control-sm border-primary" placeholder="Paste link Google Drive Kaldik..." style="width: 250px;">
-        <button class="btn btn-sm btn-success fw-bold shadow-sm" onclick="sinkronKaldik(this)" id="btn-sinkron-kaldik"><i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru</button>
-    </div>
-</div>
+                                <h6 class="fw-bold text-success mb-0"><i class="fas fa-check-circle me-2"></i> Analisa Kaldik Selesai!</h6>
+                                <div class="d-flex gap-2">
+                                    <input type="text" id="input-kaldik-link" class="form-control form-control-sm border-info" placeholder="Paste link G-Drive Kaldik..." style="width: 250px;">
+                                    <button class="btn btn-sm btn-success fw-bold shadow-sm" onclick="sinkronKaldik(this)" id="btn-sinkron-kaldik"><i class="fas fa-sync-alt me-1"></i> Sinkronkan</button>
+                                </div>
+                            </div>
                             
                             <div class="row mb-3">
                                 <div class="col-md-3 col-6 mb-2">
@@ -1173,11 +1173,11 @@ if (action === 'deletePesanBanyak') {
                             <p class="text-muted">Admin belum mengunggah & menyinkronkan file Kalender Pendidikan tingkat sekolah.</p>
                         </div>
                     </div>
-                    <div class="card-panel border-0 shadow-sm" id="guru-kaldik-status-sudah" style="display: none;">
+                   <div class="card-panel border-0 shadow-sm" id="guru-kaldik-status-sudah" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="fw-bold mb-0"><i class="fas fa-calendar-check text-success me-2"></i>Kalender Pendidikan 2026/2027</h5>
-    <a href="#" id="btn-unduh-kaldik-guru" target="_blank" class="btn btn-sm btn-primary fw-bold shadow-sm" style="display: none;"><i class="fas fa-download me-2"></i> Unduh File Kaldik</a>
-</div>
+                            <h5 class="fw-bold mb-0"><i class="fas fa-calendar-check text-success me-2"></i>Kalender Pendidikan 2026/2027</h5>
+                            <a href="#" id="btn-lihat-kaldik-guru" target="_blank" class="btn btn-sm btn-outline-info fw-bold shadow-sm" style="border-radius: 8px; display: none;"><i class="fas fa-external-link-alt me-2"></i> Lihat File Kaldik</a>
+                        </div>
                             <div class="col-md-6 mb-3">
                                 <div class="p-3 border rounded bg-white shadow-sm h-100">
                                     <div class="small text-muted fw-bold mb-2">RINGKASAN HARI & MINGGU EFEKTIF</div>
@@ -2621,6 +2621,7 @@ async function hapusSemuaRiwayat() {
             }
 
 // --- FITUR BARU: Buka Gembok Kaldik Guru ---
+            // --- FITUR BARU: Buka Gembok Kaldik Guru ---
             if(pageId === 'page-guru-kalender') {
                 const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
                 const kaldikLink = (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikLink) ? GLOBAL_DATA.profilSekolah.kaldikLink : localStorage.getItem('sagara_kaldik_link');
@@ -2628,15 +2629,14 @@ async function hapusSemuaRiwayat() {
                 if(isSynced) {
                     document.getElementById('guru-kaldik-status-belum').style.display = 'none';
                     document.getElementById('guru-kaldik-status-sudah').style.display = 'block';
-                    
-                    // Logika menampilkan tombol unduh jika link ada
-                    const btnUnduh = document.getElementById('btn-unduh-kaldik-guru');
-                    if(btnUnduh) {
-                        if(kaldikLink && kaldikLink.trim() !== '') {
-                            btnUnduh.href = kaldikLink;
-                            btnUnduh.style.display = 'inline-block';
+
+                    const btnLihat = document.getElementById('btn-lihat-kaldik-guru');
+                    if (btnLihat) {
+                        if (kaldikLink && kaldikLink.trim() !== '') {
+                            btnLihat.href = kaldikLink;
+                            btnLihat.style.display = 'inline-block';
                         } else {
-                            btnUnduh.style.display = 'none';
+                            btnLihat.style.display = 'none';
                         }
                     }
                 } else {
@@ -2650,24 +2650,22 @@ async function hapusSemuaRiwayat() {
                 const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
                 const kaldikLink = (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikLink) ? GLOBAL_DATA.profilSekolah.kaldikLink : localStorage.getItem('sagara_kaldik_link');
 
+                // PERBAIKAN: Kotak unggah file PDF selalu ditampilkan 
+                document.getElementById('upload-area-kaldik').style.display = 'block';
+
                 if(isSynced) {
-                    document.getElementById('upload-area-kaldik').style.display = 'none';
                     document.getElementById('hasil-analisa-kaldik').style.display = 'block';
                     
-                    // Kembalikan isi kolom input link agar Admin bisa melihat link yang sudah disinkron
                     const inputLink = document.getElementById('input-kaldik-link');
-                    if(inputLink) {
-                        inputLink.value = kaldikLink || '';
-                    }
+                    if (inputLink) inputLink.value = kaldikLink || '';
 
                     const btnSinkron = document.getElementById('btn-sinkron-kaldik');
                     if(btnSinkron) {
-                        btnSinkron.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Update Link';
+                        btnSinkron.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Update & Sinkron';
                         btnSinkron.className = "btn btn-sm btn-success fw-bold shadow-sm";
-                        btnSinkron.disabled = false; // Buka kuncian tombol agar link bisa diubah sewaktu-waktu
+                        btnSinkron.disabled = false; // Selalu terbuka agar bisa diperbarui kapan saja
                     }
                 } else {
-                    document.getElementById('upload-area-kaldik').style.display = 'block';
                     document.getElementById('hasil-analisa-kaldik').style.display = 'none';
                 }
             }
@@ -2977,7 +2975,9 @@ async function hapusSemuaRiwayat() {
                 nipKasek: document.getElementById('input-nip-kasek').value,
                 tahunAjaran: document.getElementById('input-tahun-ajaran').value,
                 logoUrl: document.getElementById('preview-logo').src,
-                kaldikSync: GLOBAL_DATA.profilSekolah.kaldikSync || false // Mengamankan status Kaldik
+                // PERBAIKAN: Mengamankan Kaldik agar tidak tertimpa/reset
+                kaldikSync: (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikSync) ? GLOBAL_DATA.profilSekolah.kaldikSync : false,
+                kaldikLink: (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikLink) ? GLOBAL_DATA.profilSekolah.kaldikLink : ''
             };
 
             const res = await fetchAPI('updateProfilSekolah', payload);
@@ -4322,34 +4322,33 @@ async function simpanProfilGuru(e) {
         }
 
         async function sinkronKaldik(b) { 
-    // Tarik link dari inputan admin
-    const linkInput = document.getElementById('input-kaldik-link').value.trim();
+            const linkInput = document.getElementById('input-kaldik-link') ? document.getElementById('input-kaldik-link').value.trim() : '';
 
-    b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyinkron...';
-    b.disabled = true;
+            b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyinkron...';
+            b.disabled = true;
 
-    // Simpan status dan link ke profil sekolah di Database
-    if (!GLOBAL_DATA.profilSekolah) GLOBAL_DATA.profilSekolah = {};
-    GLOBAL_DATA.profilSekolah.kaldikSync = true;
-    GLOBAL_DATA.profilSekolah.kaldikLink = linkInput; // Menyimpan link ke server
+            // Simpan status sinkronisasi ke profil sekolah di Database
+            if (!GLOBAL_DATA.profilSekolah) GLOBAL_DATA.profilSekolah = {};
+            GLOBAL_DATA.profilSekolah.kaldikSync = true;
+            GLOBAL_DATA.profilSekolah.kaldikLink = linkInput;
 
-    const res = await fetchAPI('updateProfilSekolah', GLOBAL_DATA.profilSekolah);
+            const res = await fetchAPI('updateProfilSekolah', GLOBAL_DATA.profilSekolah);
 
-    if(res.success) {
-        // Tanamkan ingatan permanen di perangkat pengguna
-        localStorage.setItem('sagara_kaldik_sync', 'true');
-        localStorage.setItem('sagara_kaldik_link', linkInput); // Backup lokal
-        
-        b.innerHTML = '<i class="fas fa-check me-1"></i> Update Link / Sinkron';
-        b.className = "btn btn-sm btn-primary fw-bold shadow-sm";
-        b.disabled = false; // Sengaja tidak dimatikan agar Admin bisa mengupdate link kapan saja
-        showToast('Kalender Pendidikan & Link berhasil disinkronkan ke seluruh Guru!', 'success');
-    } else {
-        showToast('Gagal menyinkronkan: ' + res.message, 'error');
-        b.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Sinkronkan ke Guru';
-        b.disabled = false;
-    }
-}
+            if(res.success) {
+                // Tanamkan ingatan permanen di perangkat pengguna
+                localStorage.setItem('sagara_kaldik_sync', 'true');
+                localStorage.setItem('sagara_kaldik_link', linkInput);
+                
+                b.innerHTML = '<i class="fas fa-check me-1"></i> Tersinkron';
+                b.className = "btn btn-sm btn-primary fw-bold shadow-sm";
+                b.disabled = false; // Biarkan bisa diklik ulang oleh Admin
+                showToast('Kalender Pendidikan berhasil disinkronkan ke seluruh Guru!', 'success');
+            } else {
+                showToast('Gagal menyinkronkan: ' + res.message, 'error');
+                b.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Sinkronkan';
+                b.disabled = false;
+            }
+        }
         
         function downloadLaporanAdmin() { 
             if(!window.jspdf) return showToast('Menunggu pustaka PDF dimuat...', 'error');
