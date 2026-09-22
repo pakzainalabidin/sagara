@@ -310,6 +310,26 @@
             return host === "localhost" || host === "127.0.0.1" || host.includes("gemini") || host.includes("aistudio") || window.location.protocol === "file:" || window.location.protocol === "blob:";
         }
 
+        // FITUR BARU: Mencatat ID pesan terakhir yang dibaca SECARA SPESIFIK per ruangan/kontak
+function updateLastRead(contactId) {
+    if(!currentUser) return;
+    let maxId = 0;
+    GLOBAL_DATA.pesan.forEach(msg => {
+        let isRoomMatch = false;
+        if (contactId === 'all') {
+            if (msg.receiver === 'all') isRoomMatch = true;
+        } else {
+            if ((msg.sender === currentUser.username && msg.receiver === contactId) ||
+                (msg.sender === contactId && msg.receiver === currentUser.username)) {
+                isRoomMatch = true;
+            }
+        }
+        if (isRoomMatch && msg.id > maxId) maxId = msg.id;
+    });
+    // Format memory baru: last_read_chat_Fajarisman_Budi
+    localStorage.setItem('last_read_chat_' + currentUser.username + '_' + contactId, maxId.toString());
+}
+        
         const APP_MODE = {
             isPreview: APP_CONFIG.IS_PREVIEW === true && isGasUrlPlaceholder() && isCanvasOrLocalPreview(),
             isProduction: isBloggerRuntime() || isGasUrlValid() || APP_CONFIG.IS_PREVIEW === false
@@ -2087,118 +2107,141 @@ if (action === 'deletePesanBanyak') {
             }
         }
 
-        function bukaDariLonceng() {
-            const bell = document.getElementById('bell-icon');
-            bell.classList.remove('bell-shake');
-            document.getElementById('notif-count').style.display = 'none';
-            
-            const menuAdmin = document.querySelector('#menu-admin .nav-item:nth-child(7)'); 
-            const menuGuru = document.querySelector('#menu-guru .nav-item:nth-child(4)'); 
-            const menuTarget = document.getElementById('menu-admin').style.display === 'block' ? menuAdmin : menuGuru;
-            
-            bukaHalamanPesan(menuTarget);
-        }
+        const res = await fetchAPI('savePesan', msgObj);
 
-        function hitungUnreadPesan() {
-            if(!currentUser) return;
-            let lastRead = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username) || '0');
-            let countUnread = 0;
+        // PERBAIKAN: Menghitung notifikasi lonceng secara akurat dari semua kontak
+function hitungUnreadPesan() {
+    if(!currentUser) return;
+    let countUnreadTotal = 0;
+
+    GLOBAL_DATA.pesan.forEach(msg => {
+        // Abaikan pesan yang kita kirim sendiri
+        if (msg.sender === currentUser.username) return;
+
+        if (msg.receiver === 'all') {
+            let lastRead = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username + '_all') || '0');
+            if (msg.id > lastRead) countUnreadTotal++;
+        } else if (msg.receiver === currentUser.username) {
+            let lastRead = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username + '_' + msg.sender) || '0');
+            if (msg.id > lastRead) countUnreadTotal++;
+        }
+    });
+
+    const badge = document.getElementById('notif-count');
+    const bell = document.getElementById('bell-icon');
+    if(countUnreadTotal > 0) {
+        badge.innerText = countUnreadTotal > 99 ? '99+' : countUnreadTotal;
+        badge.style.display = 'block';
+        bell.classList.add('bell-shake');
+    } else {
+        badge.style.display = 'none';
+        bell.classList.remove('bell-shake');
+    }
+}
+
+        // PERBAIKAN: Tidak langsung membaca semua pesan saat menu pesan dibuka
+function bukaHalamanPesan(navElement) {
+    switchPage('page-pesan', navElement);
+    
+    let targetUser = activeChatUser || 'all';
+    let targetName = 'Grup Semua Guru';
+    
+    if (targetUser !== 'all') {
+         const u = GLOBAL_DATA.users.find(x => x.username === targetUser);
+         if (u) targetName = u.nama;
+         else targetUser = 'all'; 
+    }
+    
+    pilihKontakChat(targetUser, targetName);
+}
+
+// PERBAIKAN: Tandai pesan dibaca hanya pada kontak yang diklik
+function pilihKontakChat(username, name) {
+    activeChatUser = username;
+    document.getElementById('chat-header-name').innerText = name;
+    
+    const avatar = document.getElementById('chat-header-avatar');
+    if(username === 'all') {
+        avatar.className = 'chat-avatar bg-primary';
+        avatar.innerHTML = '<i class="fas fa-users"></i>';
+    } else {
+        const u = GLOBAL_DATA.users.find(x => x.username === username);
+        const jabatanText = u && u.jabatan ? u.jabatan : (u && u.role ? u.role : 'Guru');
+        const isKasek = u && (u.role === 'Admin' || (jabatanText && jabatanText.toLowerCase().includes('kepala')));
+        avatar.className = `chat-avatar ${isKasek ? 'bg-danger' : 'bg-success'}`;
+        avatar.innerHTML = `<i class="fas ${isKasek ? 'fa-user-tie' : 'fa-chalkboard-teacher'}"></i>`;
+    }
+    
+    // Perbarui rekam jejak "Telah Dibaca" khusus untuk kontak ini
+    updateLastRead(username);
+    
+    document.querySelectorAll('.chat-contact-item').forEach(el => el.classList.remove('active'));
+    renderChatContacts(); 
+    hitungUnreadPesan(); // Segarkan jumlah angka di lonceng atas
+
+    if(window.innerWidth <= 768) {
+        document.getElementById('chat-sidebar-mobile').classList.add('hide-mobile');
+    }
+
+    muatIsiChat();
+}
+
+        // PERBAIKAN: Menampilkan angka unread pada masing-masing nama di Sidebar Chat
+function renderChatContacts() {
+    const container = document.getElementById('chat-contact-container');
+    if(!container) return;
+    container.innerHTML = '';
+
+    // Hitung unread khusus Grup 'all'
+    let unreadAll = 0;
+    let lastReadAll = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username + '_all') || '0');
+    GLOBAL_DATA.pesan.forEach(msg => {
+        if (msg.receiver === 'all' && msg.sender !== currentUser.username && msg.id > lastReadAll) unreadAll++;
+    });
+
+    let badgeAllHtml = unreadAll > 0 ? `<span class="badge bg-danger rounded-pill">${unreadAll}</span>` : '';
+
+    container.innerHTML += `
+        <div class="chat-contact-item ${activeChatUser === 'all' ? 'active' : ''}" onclick="pilihKontakChat('all', 'Grup Semua Guru')">
+            <div class="chat-avatar bg-primary"><i class="fas fa-users"></i></div>
+            <div style="flex-grow: 1; min-width: 0;">
+                <div class="fw-bold text-truncate" style="font-size: 0.9rem;">Grup Semua Guru</div>
+                <div class="small text-muted text-truncate" style="font-size: 0.75rem;">Ruang Publik Sekolah</div>
+            </div>
+            ${badgeAllHtml}
+        </div>
+    `;
+
+    (GLOBAL_DATA.users || []).forEach(u => {
+        if(u.username !== currentUser.username) {
+            // Hitung unread khusus chat pribadi dari user ini
+            let unreadPrivate = 0;
+            let lastReadPrivate = parseInt(localStorage.getItem('last_read_chat_' + currentUser.username + '_' + u.username) || '0');
             
             GLOBAL_DATA.pesan.forEach(msg => {
-                const isForMe = msg.receiver === 'all' || msg.receiver === currentUser.username;
-                const isFromMe = msg.sender === currentUser.username;
-                
-                if(isForMe && !isFromMe && msg.id > lastRead) {
-                    countUnread++;
-                }
+                if (msg.receiver === currentUser.username && msg.sender === u.username && msg.id > lastReadPrivate) unreadPrivate++;
             });
 
-            const badge = document.getElementById('notif-count');
-            const bell = document.getElementById('bell-icon');
-            if(countUnread > 0) {
-                badge.innerText = countUnread > 99 ? '99+' : countUnread;
-                badge.style.display = 'block';
-                bell.classList.add('bell-shake');
-            } else {
-                badge.style.display = 'none';
-                bell.classList.remove('bell-shake');
-            }
-        }
+            const jabatanText = u.jabatan ? u.jabatan : u.role || 'Guru';
+            const isKasek = u.role === 'Admin' || (u.jabatan && u.jabatan.toLowerCase().includes('kepala'));
+            const color = isKasek ? 'bg-danger' : 'bg-success';
+            const icon = isKasek ? 'fa-user-tie' : 'fa-chalkboard-teacher';
+            
+            let badgePrivateHtml = unreadPrivate > 0 ? `<span class="badge bg-danger rounded-pill">${unreadPrivate}</span>` : '';
 
-        function bukaHalamanPesan(navElement) {
-            switchPage('page-pesan', navElement);
-            
-            if(GLOBAL_DATA.pesan.length > 0) {
-                const maxId = Math.max(...GLOBAL_DATA.pesan.map(p => p.id));
-                localStorage.setItem('last_read_chat_' + currentUser.username, maxId.toString());
-            } else {
-                localStorage.setItem('last_read_chat_' + currentUser.username, Date.now().toString());
-            }
-            hitungUnreadPesan(); 
-            
-            renderChatContacts();
-            pilihKontakChat('all', 'Grup Semua Guru');
-        }
-
-        function renderChatContacts() {
-            const container = document.getElementById('chat-contact-container');
-            container.innerHTML = '';
-            
             container.innerHTML += `
-                <div class="chat-contact-item ${activeChatUser === 'all' ? 'active' : ''}" onclick="pilihKontakChat('all', 'Grup Semua Guru')">
-                    <div class="chat-avatar bg-primary"><i class="fas fa-users"></i></div>
+                <div class="chat-contact-item ${activeChatUser === u.username ? 'active' : ''}" onclick="pilihKontakChat('${u.username}', '${u.nama}')">
+                    <div class="chat-avatar ${color}"><i class="fas ${icon}"></i></div>
                     <div style="flex-grow: 1; min-width: 0;">
-                        <div class="fw-bold text-truncate" style="font-size: 0.9rem;">Grup Semua Guru</div>
-                        <div class="small text-muted text-truncate" style="font-size: 0.75rem;">Ruang Publik Sekolah</div>
+                        <div class="fw-bold text-truncate" style="font-size: 0.9rem;">${u.nama}</div>
+                        <div class="small text-muted text-truncate" style="font-size: 0.75rem;">${jabatanText}</div>
                     </div>
+                    ${badgePrivateHtml}
                 </div>
             `;
-
-            (GLOBAL_DATA.users || []).forEach(u => {
-                if(u.username !== currentUser.username) {
-                    const jabatanText = u.jabatan ? u.jabatan : u.role || 'Guru';
-                    const isKasek = u.role === 'Admin' || (u.jabatan && u.jabatan.toLowerCase().includes('kepala'));
-                    const color = isKasek ? 'bg-danger' : 'bg-success';
-                    const icon = isKasek ? 'fa-user-tie' : 'fa-chalkboard-teacher';
-                    
-                    container.innerHTML += `
-                        <div class="chat-contact-item ${activeChatUser === u.username ? 'active' : ''}" onclick="pilihKontakChat('${u.username}', '${u.nama}')">
-                            <div class="chat-avatar ${color}"><i class="fas ${icon}"></i></div>
-                            <div style="flex-grow: 1; min-width: 0;">
-                                <div class="fw-bold text-truncate" style="font-size: 0.9rem;">${u.nama}</div>
-                                <div class="small text-muted text-truncate" style="font-size: 0.75rem;">${jabatanText}</div>
-                            </div>
-                        </div>
-                    `;
-                }
-            });
         }
-
-        function pilihKontakChat(username, name) {
-            activeChatUser = username;
-            document.getElementById('chat-header-name').innerText = name;
-            
-            const avatar = document.getElementById('chat-header-avatar');
-            if(username === 'all') {
-                avatar.className = 'chat-avatar bg-primary';
-                avatar.innerHTML = '<i class="fas fa-users"></i>';
-            } else {
-                const u = GLOBAL_DATA.users.find(x => x.username === username);
-                const jabatanText = u && u.jabatan ? u.jabatan : (u && u.role ? u.role : 'Guru');
-                const isKasek = u && (u.role === 'Admin' || (jabatanText && jabatanText.toLowerCase().includes('kepala')));
-                avatar.className = `chat-avatar ${isKasek ? 'bg-danger' : 'bg-success'}`;
-                avatar.innerHTML = `<i class="fas ${isKasek ? 'fa-user-tie' : 'fa-chalkboard-teacher'}"></i>`;
-            }
-            
-            document.querySelectorAll('.chat-contact-item').forEach(el => el.classList.remove('active'));
-            renderChatContacts(); 
-
-            if(window.innerWidth <= 768) {
-                document.getElementById('chat-sidebar-mobile').classList.add('hide-mobile');
-            }
-
-            muatIsiChat();
-        }
+    });
+}
 
         function tutupChatMobile() {
             document.getElementById('chat-sidebar-mobile').classList.remove('hide-mobile');
@@ -2278,7 +2321,7 @@ if (action === 'deletePesanBanyak') {
             if(!res.success) {
                 showToast("Gagal mengirim pesan: " + res.message, 'error');
             } else {
-                localStorage.setItem('last_read_chat_' + currentUser.username, msgObj.id.toString());
+                updateLastRead(activeChatUser);
             }
         }
 
