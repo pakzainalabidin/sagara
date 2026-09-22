@@ -1173,11 +1173,12 @@ if (action === 'deletePesanBanyak') {
                             <p class="text-muted">Admin belum mengunggah & menyinkronkan file Kalender Pendidikan tingkat sekolah.</p>
                         </div>
                     </div>
-                   <div class="card-panel border-0 shadow-sm" id="guru-kaldik-status-sudah" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="card-panel border-0 shadow-sm" id="guru-kaldik-status-sudah" style="display: none;">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
                             <h5 class="fw-bold mb-0"><i class="fas fa-calendar-check text-success me-2"></i>Kalender Pendidikan 2026/2027</h5>
-                            <a href="#" id="btn-lihat-kaldik-guru" target="_blank" class="btn btn-sm btn-outline-info fw-bold shadow-sm" style="border-radius: 8px; display: none;"><i class="fas fa-external-link-alt me-2"></i> Lihat File Kaldik</a>
+                            <a href="#" id="btn-lihat-kaldik-guru" target="_blank" class="btn btn-sm btn-outline-info fw-bold shadow-sm mt-2 mt-md-0" style="border-radius: 8px;"><i class="fas fa-external-link-alt me-2"></i> Lihat File Kaldik</a>
                         </div>
+                        <div class="row">
                             <div class="col-md-6 mb-3">
                                 <div class="p-3 border rounded bg-white shadow-sm h-100">
                                     <div class="small text-muted fw-bold mb-2">RINGKASAN HARI & MINGGU EFEKTIF</div>
@@ -2622,6 +2623,7 @@ async function hapusSemuaRiwayat() {
 
 // --- FITUR BARU: Buka Gembok Kaldik Guru ---
             // --- FITUR BARU: Buka Gembok Kaldik Guru ---
+            // --- FITUR BARU: Buka Gembok Kaldik Guru ---
             if(pageId === 'page-guru-kalender') {
                 const isSynced = (GLOBAL_DATA.profilSekolah && (GLOBAL_DATA.profilSekolah.kaldikSync === true || String(GLOBAL_DATA.profilSekolah.kaldikSync).toLowerCase() === 'true')) || localStorage.getItem('sagara_kaldik_sync') === 'true';
                 const kaldikLink = (GLOBAL_DATA.profilSekolah && GLOBAL_DATA.profilSekolah.kaldikLink) ? GLOBAL_DATA.profilSekolah.kaldikLink : localStorage.getItem('sagara_kaldik_link');
@@ -2633,10 +2635,17 @@ async function hapusSemuaRiwayat() {
                     const btnLihat = document.getElementById('btn-lihat-kaldik-guru');
                     if (btnLihat) {
                         if (kaldikLink && kaldikLink.trim() !== '') {
+                            // Jika ada link, ubah jadi tombol biru
                             btnLihat.href = kaldikLink;
-                            btnLihat.style.display = 'inline-block';
+                            btnLihat.classList.remove('disabled', 'btn-light', 'text-muted');
+                            btnLihat.classList.add('btn-outline-info');
+                            btnLihat.innerHTML = '<i class="fas fa-external-link-alt me-2"></i> Lihat File Kaldik';
                         } else {
-                            btnLihat.style.display = 'none';
+                            // Jika link kosong, jadikan tombol abu-abu
+                            btnLihat.href = '#';
+                            btnLihat.classList.remove('btn-outline-info');
+                            btnLihat.classList.add('disabled', 'btn-light', 'text-muted');
+                            btnLihat.innerHTML = '<i class="fas fa-ban me-2"></i> Link Belum Diberikan';
                         }
                     }
                 } else {
