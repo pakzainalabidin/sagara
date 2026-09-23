@@ -3203,6 +3203,36 @@ async function simpanProfilGuru(e) {
 
                 // Blokir tabel menjadi merah dan matikan tombol
                 document.querySelectorAll('#body-presensi tr').forEach(row => {
+                    row.classList.add('table-danger'); // Beri warna merah pada baris
+                    
+                    const radios = row.querySelectorAll('.radio-absen');
+                    radios.forEach(r => {
+                        r.checked = false; // Kosongkan centang
+                        r.disabled = true; // Gembok tombol
+                    });
+                });
+
+                // Gembok tombol Simpan dan tombol PopUp
+                if(btnSimpan) btnSimpan.disabled = true;
+                if(btnInputModal) btnInputModal.disabled = true;
+
+                // Nol-kan angka statistik
+                if(document.getElementById('tot-hadir')) document.getElementById('tot-hadir').innerText = 0;
+                if(document.getElementById('tot-sakit')) document.getElementById('tot-sakit').innerText = 0;
+                if(document.getElementById('tot-izin')) document.getElementById('tot-izin').innerText = 0;
+                if(document.getElementById('tot-alfa')) document.getElementById('tot-alfa').innerText = 0;
+                if(document.getElementById('tot-persen')) document.getElementById('tot-persen').innerText = 0;
+                
+                return; // Hentikan proses, jangan muat data apapun
+            }
+
+            // --- LOGIKA JIKA HARI AKTIF (BUKAN LIBUR) ---
+            if(btnSimpan) btnSimpan.disabled = false;
+            if(btnInputModal) btnInputModal.disabled = false;
+            
+            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
+            
+            document.querySelectorAll('#body-presensi tr').forEach(row => {
                 row.classList.remove('table-danger'); // Hilangkan warna merah
                 
                 const nisn = row.getAttribute('data-nisn');
@@ -3224,6 +3254,7 @@ async function simpanProfilGuru(e) {
             });
             
             filterTabelPresensi();
+        }
 
         async function simpanDataPresensi() {
             const btn = document.getElementById('btn-simpan-presensi');
@@ -4549,6 +4580,8 @@ async function simpanProfilGuru(e) {
             if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
             
             showToast('Tersimpan di Prota! Jangan lupa klik tombol Sinkron.', 'success');
+        } // <--- TAMBAHKAN KURUNG KURAWAL INI
+
         function sinkronProtaManual() {
             renderProsem();
             showToast('Data berhasil disinkronisasi ke Menu Prosem!', 'success');
