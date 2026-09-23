@@ -282,6 +282,32 @@
 </head>
 <body>
     <script>
+        // FUNGSI WAKTU LOKAL INDONESIA
+        function getTanggalHariIni() {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        // FUNGSI PENJINAK ZONA WAKTU DARI SERVER
+        function normalizeDataServer() {
+            if (!GLOBAL_DATA.presensi) return;
+            let normalizedPresensi = {};
+            for (let key in GLOBAL_DATA.presensi) {
+                let d = new Date(key);
+                if (!isNaN(d.getTime()) && key.includes('T')) { 
+                    let yyyy = d.getFullYear();
+                    let mm = String(d.getMonth() + 1).padStart(2, '0');
+                    let dd = String(d.getDate()).padStart(2, '0');
+                    normalizedPresensi[`${yyyy}-${mm}-${dd}`] = GLOBAL_DATA.presensi[key];
+                } else {
+                    normalizedPresensi[key] = GLOBAL_DATA.presensi[key];
+                }
+            }
+            GLOBAL_DATA.presensi = normalizedPresensi;
+        }
         const APP_CONFIG = {
             IS_PREVIEW: false, 
             GAS_URL: "https://script.google.com/macros/s/AKfycbzKJhL5iIrFuS-xg0Rf36wb-Xk9R3uBfau7-MFIh0czQQ7hcdpaNJv2ulO9rF7pcFKJ/exec", 
@@ -1868,7 +1894,7 @@ if (action === 'deletePesanBanyak') {
             renderDemoOnlyUI();
             removeDemoUIForProduction();
             
-            document.getElementById('tanggal-presensi').value = new Date().toISOString().split('T')[0];
+            document.getElementById('tanggal-presensi').value = getTanggalHariIni();
             
             const taAdmin = document.getElementById('display-tahun-ajaran-admin');
             if(taAdmin) taAdmin.innerText = DUMMY_DB.schoolProfile.tahunAjaran;
@@ -1877,6 +1903,7 @@ if (action === 'deletePesanBanyak') {
                 fetchAPI('getInitialData').then(res => {
                     if(res.success && res.data) {
                         GLOBAL_DATA = res.data;
+                        normalizeDataServer();
                         if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                         if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
                         isDataPrefetched = true;
@@ -1927,6 +1954,7 @@ function sinkronkanMasterKey() {
                 fetchAPI('getInitialData').then(res => {
                     if (res.success && res.data) {
                         GLOBAL_DATA = res.data;
+                        normalizeDataServer();
                         if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                         if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
                     }
@@ -2079,7 +2107,7 @@ function sinkronkanMasterKey() {
             if (!isDataPrefetched) {
                 document.getElementById('main-loading').style.display = 'flex';
                 const res = await fetchAPI('getInitialData');
-                if(res.success) { GLOBAL_DATA = res.data; } else { GLOBAL_DATA = DUMMY_DB; }
+                if(res.success) { GLOBAL_DATA = res.data; normalizeDataServer(); } else { GLOBAL_DATA = DUMMY_DB; }
                 if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                 if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
                 document.getElementById('main-loading').style.display = 'none';
@@ -2751,9 +2779,10 @@ async function hapusSemuaRiwayat() {
             
             const res = await fetchAPI('getInitialData');
             if(res.success) {
-                GLOBAL_DATA = res.data;
-                isDataPrefetched = true;
-            }
+            GLOBAL_DATA = res.data;
+            normalizeDataServer();
+            isDataPrefetched = true;
+        }
             if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
             if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
             
@@ -3180,7 +3209,6 @@ async function simpanProfilGuru(e) {
             const tgl = document.getElementById('tanggal-presensi').value;
             if(!tgl) return;
 
-            // FITUR BARU: Daftar Hari Libur Nasional 2026/2027 (Format YYYY-MM-DD)
             const liburNasional = [
                 "2026-08-17", "2026-08-25", "2026-12-24", "2026-12-25",
                 "2027-01-01", "2027-01-05", "2027-02-06", "2027-03-09", 
@@ -3190,69 +3218,53 @@ async function simpanProfilGuru(e) {
             ];
 
             const dateObj = new Date(tgl);
-            const isMinggu = dateObj.getDay() === 0; // 0 adalah indeks untuk hari Minggu
+            const isMinggu = dateObj.getDay() === 0; 
             const isLiburNasional = liburNasional.includes(tgl);
 
             const btnSimpan = document.getElementById('btn-simpan-presensi');
             const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
             
-            // --- LOGIKA JIKA HARI LIBUR / MINGGU ---
             if (isMinggu || isLiburNasional) {
                 const ketLibur = isMinggu ? "Hari Minggu" : "Hari Libur Nasional";
                 showToast(`Tanggal ${tgl} adalah ${ketLibur}! Presensi ditutup.`, 'error');
 
-                // Blokir tabel menjadi merah dan matikan tombol
                 document.querySelectorAll('#body-presensi tr').forEach(row => {
-                    row.classList.add('table-danger'); // Beri warna merah pada baris
-                    
-                    const radios = row.querySelectorAll('.radio-absen');
-                    radios.forEach(r => {
-                        r.checked = false; // Kosongkan centang
-                        r.disabled = true; // Gembok tombol
+                    row.classList.add('table-danger'); 
+                    row.querySelectorAll('.radio-absen').forEach(r => {
+                        r.checked = false; 
+                        r.disabled = true; 
                     });
                 });
 
-                // Gembok tombol Simpan dan tombol PopUp
-                if(btnSimpan) btnSimpan.disabled = true;
+                if(btnSimpan) { btnSimpan.disabled = true; btnSimpan.innerHTML = '<i class="fas fa-ban me-1"></i> Libur'; }
                 if(btnInputModal) btnInputModal.disabled = true;
 
-                // Nol-kan angka statistik
                 if(document.getElementById('tot-hadir')) document.getElementById('tot-hadir').innerText = 0;
                 if(document.getElementById('tot-sakit')) document.getElementById('tot-sakit').innerText = 0;
                 if(document.getElementById('tot-izin')) document.getElementById('tot-izin').innerText = 0;
                 if(document.getElementById('tot-alfa')) document.getElementById('tot-alfa').innerText = 0;
                 if(document.getElementById('tot-persen')) document.getElementById('tot-persen').innerText = 0;
-                
-                return; // Hentikan proses, jangan muat data apapun
+                return; 
             }
-
-            // --- LOGIKA JIKA HARI AKTIF (BUKAN LIBUR) ---
-            if(btnSimpan) btnSimpan.disabled = false;
-            if(btnInputModal) btnInputModal.disabled = false;
             
             const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
             
             document.querySelectorAll('#body-presensi tr').forEach(row => {
-                row.classList.remove('table-danger'); // Hilangkan warna merah
-                
+                row.classList.remove('table-danger'); 
                 const nisn = row.getAttribute('data-nisn');
                 const radios = row.querySelectorAll('.radio-absen');
                 
-                radios.forEach(r => {
-                    r.disabled = false; // Buka gembok tombol
-                    r.checked = false; 
-                }); 
+                // PERBAIKAN: Bersihkan (kosongkan) centang terlebih dahulu
+                radios.forEach(r => r.checked = false); 
 
+                // Jika data riwayat tersedia (History Tidak Hilang), panggil datanya
                 if(dataPresensi[nisn]) {
                     const r = Array.from(radios).find(rad => rad.value === dataPresensi[nisn]);
                     if(r) r.checked = true;
-                } else {
-                    // PERBAIKAN: JANGAN centang 'Hadir' secara otomatis.
-                    // Biarkan kosong agar guru wajib mengisi (klik) manual.
-                    radios.forEach(r => r.checked = false);
                 }
             });
             
+            // Panggil filter untuk menghitung visibility dan MENGUNCI absensi jika perlu
             filterTabelPresensi();
         }
 
@@ -3264,30 +3276,44 @@ async function simpanProfilGuru(e) {
             const tgl = document.getElementById('tanggal-presensi').value;
             const fKelas = document.getElementById('filter-kelas-presensi').value;
             let dataSiswa = {};
+            let adaYangDiabsen = false;
             
             document.querySelectorAll('#body-presensi tr').forEach(row => {
                 if(row.style.display !== 'none') {
                     const nisn = row.getAttribute('data-nisn');
                     const r = row.querySelector('.radio-absen:checked');
-                    if(r) dataSiswa[nisn] = r.value;
+                    if(r) {
+                        dataSiswa[nisn] = r.value;
+                        adaYangDiabsen = true;
+                    }
                 }
             });
+
+            if (!adaYangDiabsen) {
+                showToast('Pilih status kehadiran minimal 1 siswa terlebih dahulu!', 'warning');
+                btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
+                btn.disabled = false;
+                return;
+            }
 
             const res = await fetchAPI('savePresensi', { tanggal: tgl, kelas: fKelas, data: dataSiswa });
             if(res.success) {
                 if(!GLOBAL_DATA.presensi[tgl]) GLOBAL_DATA.presensi[tgl] = {};
                 Object.assign(GLOBAL_DATA.presensi[tgl], dataSiswa);
                 
-                // --- Tambahkan Baris Ini ---
+                // PERBAIKAN: Refresh Dashboard Guru & Admin agar persentase langsung naik
                 if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
                 if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
 
-                showToast('Presensi Tgl ' + tgl + ' Disimpan!', 'success');
+                // Mengunci tabel setelah berhasil
+                filterTabelPresensi();
+
+                showToast('Presensi Tgl ' + tgl + ' Berhasil Dikunci & Disimpan!', 'success');
             } else {
                 showToast(res.message, 'error');
+                btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
+                btn.disabled = false;
             }
-            btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
-            btn.disabled = false;
         }
 
         function muatDataNilai() {
@@ -3917,18 +3943,53 @@ async function simpanProfilGuru(e) {
 
         function filterTabelPresensi() {
             const val = document.getElementById('filter-kelas-presensi').value;
-            let no = 1; // FITUR BARU: Variabel untuk mereset nomor urut
+            let no = 1; 
             document.querySelectorAll('#body-presensi tr').forEach(r => {
                 if(val === 'Semua' || r.getAttribute('data-kelas') === val) {
                     r.style.display = '';
-                    r.cells[0].innerText = no++; // Update angka di kolom pertama
+                    r.cells[0].innerText = no++; 
                 } else {
                     r.style.display = 'none';
                 }
             });
+
+            // --- LOGIKA CERDAS: MENGUNCI KELAS YANG SUDAH DIABSEN ---
+            const tgl = document.getElementById('tanggal-presensi').value;
+            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
+            let sudahAdaAbsenDiKelasIni = false;
+            
+            document.querySelectorAll('#body-presensi tr').forEach(row => {
+                if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
+                    const nisn = row.getAttribute('data-nisn');
+                    if (dataPresensi[nisn]) sudahAdaAbsenDiKelasIni = true;
+                }
+            });
+            
+            const btnSimpan = document.getElementById('btn-simpan-presensi');
+            const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
+            
+            if (sudahAdaAbsenDiKelasIni) {
+                // KUNCI! Karena guru sudah pernah menyimpan absen di tanggal & kelas ini
+                if(btnSimpan) { btnSimpan.disabled = true; btnSimpan.innerHTML = '<i class="fas fa-lock me-1"></i> Sudah Diabsen'; }
+                if(btnInputModal) btnInputModal.disabled = true;
+                document.querySelectorAll('#body-presensi tr').forEach(row => {
+                    if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
+                        row.querySelectorAll('.radio-absen').forEach(r => r.disabled = true);
+                    }
+                });
+            } else {
+                // BUKA! Karena tanggal dan kelas ini masih bersih (belum pernah diklik Simpan)
+                if(btnSimpan) { btnSimpan.disabled = false; btnSimpan.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi'; }
+                if(btnInputModal) btnInputModal.disabled = false;
+                document.querySelectorAll('#body-presensi tr').forEach(row => {
+                    if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
+                        row.querySelectorAll('.radio-absen').forEach(r => r.disabled = false);
+                    }
+                });
+            }
+            
             hitungPresensi();
         }
-
         function filterTabelNilai() {
             const val = document.getElementById('filter-kelas-nilai').value;
             let no = 1; // FITUR BARU: Variabel untuk mereset nomor urut
@@ -3988,7 +4049,7 @@ async function simpanProfilGuru(e) {
         function updateDashboardGuru() {
             if (!currentUser || currentUser.role === 'Admin') return;
             
-            const today = new Date().toISOString().split('T')[0];
+            const today = getTanggalHariIni();
             const presensiToday = GLOBAL_DATA.presensi[today] || {};
             const kBase = document.getElementById('select-kelas-guru') ? document.getElementById('select-kelas-guru').value : 'Semua';
             
@@ -4066,10 +4127,10 @@ async function simpanProfilGuru(e) {
                 adminChartInstance = new Chart(ctx1, {
                     type: 'bar',
                     data: {
-                        labels: ['Modul Ajar', 'Prota/Promes', 'Penilaian', 'Presensi', 'CP/TP', 'Jurnal Harian'],
+                        labels: ['Profil & Kelas', 'Siswa', 'Presensi', 'Penilaian', 'Prota & Jurnal'],
                         datasets: [{
-                            label: 'Persentase Selesai (%)',
-                            data: [0, 0, 0, 0, 0, 0], // Data di-Nol-kan
+                            label: 'Rata-rata Penyelesaian Nasional (%)',
+                            data: [0, 0, 0, 0, 0], 
                             backgroundColor: 'rgba(37, 99, 235, 0.8)',
                             borderRadius: 4
                         }]
@@ -4082,25 +4143,13 @@ async function simpanProfilGuru(e) {
             if(ctx2) {
                 if(adminPencapaianChartInstance) adminPencapaianChartInstance.destroy();
                 
-                // Ambil nama guru asli dari Database, nilainya di-Nol-kan
-                let guruLabels = [];
-                let guruData = [];
-                (GLOBAL_DATA.users || []).forEach(u => {
-                    if(u.role !== 'Admin') {
-                        guruLabels.push(u.nama);
-                        guruData.push(0);
-                    }
-                });
-                
-                if(guruLabels.length === 0) { guruLabels = ['Belum Ada Guru']; guruData = [0]; }
-
                 adminPencapaianChartInstance = new Chart(ctx2, {
                     type: 'bar',
                     data: {
-                        labels: guruLabels,
+                        labels: [], 
                         datasets: [{
-                            label: 'Pencapaian (%)',
-                            data: guruData,
+                            label: 'Pencapaian Total Guru (%)',
+                            data: [],
                             backgroundColor: 'rgba(16, 185, 129, 0.8)',
                             borderRadius: 4
                         }]
@@ -4140,48 +4189,55 @@ async function simpanProfilGuru(e) {
                 return;
             }
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = getTanggalHariIni();
             const presensiToday = GLOBAL_DATA.presensi[today] || {};
             let totalProgressNasional = 0;
 
+            // Penampung data untuk grafik Admin
+            let sumProfil = 0, sumSiswa = 0, sumPresensi = 0, sumNilai = 0, sumProta = 0;
+            let chartLabelsGuru = [];
+            let chartDataGuru = [];
+
             gurus.forEach(u => {
-                // 1. Cek Kelengkapan Profil
                 let profilVal = (u.nip && u.nip !== '-') ? 100 : 50;
                 
-                // Cari Kelas
                 let kBase = 'Semua';
                 if (u.jabatan && u.jabatan.includes('Kelas')) {
                     const match = u.jabatan.match(/\d/);
                     if (match) kBase = match[0];
                 }
 
-                // 2. Cek Data Siswa
                 let siswaCount = 0;
                 (GLOBAL_DATA.siswa || []).forEach(s => {
                     if (kBase === 'Semua' || s.kelas.includes(kBase)) siswaCount++;
                 });
                 let siswaVal = siswaCount > 0 ? 100 : 0;
 
-                // 3. Cek Presensi (Hari Ini)
                 let presensiVal = 0;
                 let siswaDiKelas = (GLOBAL_DATA.siswa || []).filter(s => kBase === 'Semua' || s.kelas.includes(kBase));
                 let sudahAbsen = 0;
                 siswaDiKelas.forEach(s => { if (presensiToday[s.nisn]) sudahAbsen++; });
                 if (siswaDiKelas.length > 0) presensiVal = Math.round((sudahAbsen / siswaDiKelas.length) * 100);
 
-                // 4. Cek Penilaian
                 let nilaiVal = 0;
                 let mapelKey = u.jabatan.includes('PJOK') ? 'PJOK' : u.jabatan.includes('PAI') ? 'Pendidikan Agama' : '';
                 let kunciCari = mapelKey ? `${mapelKey}_${kBase}` : `_${kBase}`;
                 let hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari));
                 if (hasNilai) nilaiVal = 100;
 
-                // 5. Cek Perangkat Ajar (Prota)
                 let jurnalVal = (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) ? 100 : 0;
 
-                // Kalkulasi Rata-Rata Guru
                 let rataRata = Math.round((profilVal + siswaVal + presensiVal + nilaiVal + jurnalVal) / 5);
                 totalProgressNasional += rataRata;
+
+                // Tambahkan data guru ini ke kalkulasi Grafik
+                sumProfil += profilVal;
+                sumSiswa += siswaVal;
+                sumPresensi += presensiVal;
+                sumNilai += nilaiVal;
+                sumProta += jurnalVal;
+                chartLabelsGuru.push(u.nama);
+                chartDataGuru.push(rataRata);
 
                 html += `
                     <div class="col-md-6 mb-4">
@@ -4216,12 +4272,29 @@ async function simpanProfilGuru(e) {
             });
             container.innerHTML = html;
 
-            // Update Progress Nasional di Dashboard Admin Utama
-            const avgNasional = gurus.length > 0 ? Math.round(totalProgressNasional / gurus.length) : 0;
+            const totalG = gurus.length;
+            const avgNasional = totalG > 0 ? Math.round(totalProgressNasional / totalG) : 0;
             const targetStatCard = document.querySelector('#page-admin-dashboard .stat-card .bg-warning.bg-opacity-10');
             if(targetStatCard && targetStatCard.parentElement) {
                 const h3 = targetStatCard.parentElement.querySelector('h3');
                 if(h3) h3.innerText = avgNasional + '%';
+            }
+
+            // PERBAIKAN: Nyalakan Grafik Admin secara Real-Time
+            if (adminChartInstance && totalG > 0) {
+                adminChartInstance.data.datasets[0].data = [
+                    Math.round(sumProfil / totalG),
+                    Math.round(sumSiswa / totalG),
+                    Math.round(sumPresensi / totalG),
+                    Math.round(sumNilai / totalG),
+                    Math.round(sumProta / totalG)
+                ];
+                adminChartInstance.update();
+            }
+            if (adminPencapaianChartInstance && totalG > 0) {
+                adminPencapaianChartInstance.data.labels = chartLabelsGuru;
+                adminPencapaianChartInstance.data.datasets[0].data = chartDataGuru;
+                adminPencapaianChartInstance.update();
             }
         }
 
@@ -5076,7 +5149,7 @@ Materi Pembelajaran: ${mat}`;
         // ==========================================
        function bukaModalJurnal() {
             // 1. Set Tanggal Otomatis hari ini
-            document.getElementById('input-modal-jurnal-tgl').value = new Date().toISOString().split('T')[0];
+            document.getElementById('input-modal-jurnal-tgl').value = getTanggalHariIni();
 
             // 2. Logika Kelas Pintar (Terkunci vs Terbuka)
             const selectJabatan = document.getElementById('select-jabatan-guru');
@@ -5201,7 +5274,7 @@ Materi Pembelajaran: ${mat}`;
         }
 
         function bukaModalProta() {
-            document.getElementById('input-modal-prota-tgl').value = new Date().toISOString().split('T')[0];
+            document.getElementById('input-modal-prota-tgl').value = getTanggalHariIni();
             updateBulanOtomatisProta();
             populateMapelDropdowns(); 
             document.getElementById('input-modal-prota-bab').value = '';
