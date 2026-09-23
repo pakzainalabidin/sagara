@@ -3203,36 +3203,6 @@ async function simpanProfilGuru(e) {
 
                 // Blokir tabel menjadi merah dan matikan tombol
                 document.querySelectorAll('#body-presensi tr').forEach(row => {
-                    row.classList.add('table-danger'); // Beri warna merah pada baris
-                    
-                    const radios = row.querySelectorAll('.radio-absen');
-                    radios.forEach(r => {
-                        r.checked = false; // Kosongkan centang
-                        r.disabled = true; // Gembok tombol
-                    });
-                });
-
-                // Gembok tombol Simpan dan tombol PopUp
-                if(btnSimpan) btnSimpan.disabled = true;
-                if(btnInputModal) btnInputModal.disabled = true;
-
-                // Nol-kan angka statistik
-                if(document.getElementById('tot-hadir')) document.getElementById('tot-hadir').innerText = 0;
-                if(document.getElementById('tot-sakit')) document.getElementById('tot-sakit').innerText = 0;
-                if(document.getElementById('tot-izin')) document.getElementById('tot-izin').innerText = 0;
-                if(document.getElementById('tot-alfa')) document.getElementById('tot-alfa').innerText = 0;
-                if(document.getElementById('tot-persen')) document.getElementById('tot-persen').innerText = 0;
-                
-                return; // Hentikan proses, jangan muat data apapun
-            }
-
-            // --- LOGIKA JIKA HARI AKTIF (BUKAN LIBUR) ---
-            if(btnSimpan) btnSimpan.disabled = false;
-            if(btnInputModal) btnInputModal.disabled = false;
-            
-            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
-            
-            document.querySelectorAll('#body-presensi tr').forEach(row => {
                 row.classList.remove('table-danger'); // Hilangkan warna merah
                 
                 const nisn = row.getAttribute('data-nisn');
@@ -3247,12 +3217,13 @@ async function simpanProfilGuru(e) {
                     const r = Array.from(radios).find(rad => rad.value === dataPresensi[nisn]);
                     if(r) r.checked = true;
                 } else {
-                    if(radios[0]) radios[0].checked = true; // Set default ke 'Hadir' jika belum diisi
+                    // PERBAIKAN: JANGAN centang 'Hadir' secara otomatis.
+                    // Biarkan kosong agar guru wajib mengisi (klik) manual.
+                    radios.forEach(r => r.checked = false);
                 }
             });
             
             filterTabelPresensi();
-        }
 
         async function simpanDataPresensi() {
             const btn = document.getElementById('btn-simpan-presensi');
@@ -3275,6 +3246,11 @@ async function simpanProfilGuru(e) {
             if(res.success) {
                 if(!GLOBAL_DATA.presensi[tgl]) GLOBAL_DATA.presensi[tgl] = {};
                 Object.assign(GLOBAL_DATA.presensi[tgl], dataSiswa);
+                
+                // --- Tambahkan Baris Ini ---
+                if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+                if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+
                 showToast('Presensi Tgl ' + tgl + ' Disimpan!', 'success');
             } else {
                 showToast(res.message, 'error');
@@ -3351,6 +3327,11 @@ async function simpanProfilGuru(e) {
             const res = await fetchAPI('saveNilai', { mapel: mapel, kelas: fKelas, data: payloadData });
             if(res.success) {
                 GLOBAL_DATA.nilai[key] = payloadData;
+                
+                // --- Tambahkan Baris Ini ---
+                if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+                if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+
                 showToast(`Nilai ${mapel} Disimpan ke Server!`, 'success');
             } else {
                 showToast(res.message, 'error');
@@ -3967,6 +3948,56 @@ async function simpanProfilGuru(e) {
                 });
                 document.getElementById('stat-siswa-guru').innerText = dashtot;
             }
+
+            // PERBAIKAN: Trigger perhitungan Dashboard Guru otomatis
+            if (typeof updateDashboardGuru === 'function') updateDashboardGuru();
+        }
+
+        // FUNGSI BARU: Menghitung Persentase Kehadiran dan Administrasi di Dashboard Guru
+        function updateDashboardGuru() {
+            if (!currentUser || currentUser.role === 'Admin') return;
+            
+            const today = new Date().toISOString().split('T')[0];
+            const presensiToday = GLOBAL_DATA.presensi[today] || {};
+            const kBase = document.getElementById('select-kelas-guru') ? document.getElementById('select-kelas-guru').value : 'Semua';
+            
+            let totalSiswa = 0, totalHadir = 0;
+            
+            (GLOBAL_DATA.siswa || []).forEach(s => {
+                const k = s.kelas.replace('Kelas ', '');
+                if (kBase === 'Semua' || kBase === k) {
+                    totalSiswa++;
+                    if (presensiToday[s.nisn] === 'H') totalHadir++;
+                }
+            });
+            
+            // Hitung % Kehadiran
+            const persenHadir = totalSiswa > 0 ? Math.round((totalHadir / totalSiswa) * 100) : 0;
+            const elHadir = document.querySelector('#page-guru-dashboard .border-success h2');
+            if (elHadir) elHadir.innerHTML = `${persenHadir}<span class="fs-6 text-muted fw-normal">%</span>`;
+
+            // Hitung % Status Administrasi
+            let poinAdmin = 0;
+            if (totalSiswa > 0) poinAdmin++; // Ada Siswa
+            if (Object.keys(presensiToday).length > 0) poinAdmin++; // Sudah ngabsen hari ini
+            
+            let kunciCari = kBase === 'Semua' ? '' : `_${kBase}`;
+            const hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari));
+            if (hasNilai) poinAdmin++; // Sudah isi Nilai
+            
+            const hasProta = (GLOBAL_DATA.prota || []).length > 0;
+            if (hasProta) poinAdmin++; // Sudah buat Prota
+            
+            const persenAdmin = Math.round((poinAdmin / 4) * 100);
+            const elAdmin = document.querySelector('#page-guru-dashboard .border-warning h2');
+            if (elAdmin) elAdmin.innerHTML = `${persenAdmin}<span class="fs-6 text-muted fw-normal">%</span>`;
+
+            // Update Grafik Guru
+            if (typeof guruChartInstance !== 'undefined' && guruChartInstance !== null) {
+                guruChartInstance.data.datasets[0].data = [persenHadir, persenHadir, 0, 0];
+                guruChartInstance.data.datasets[1].data = [persenAdmin, persenAdmin, 0, 0];
+                guruChartInstance.update();
+            }
         }
 
         function hitungPresensi() {
@@ -4071,7 +4102,6 @@ async function simpanProfilGuru(e) {
             if(!container) return;
 
             let html = '';
-            // Hanya tarik data guru asli dari Database
             const gurus = (GLOBAL_DATA.users || []).filter(u => u.role !== 'Admin');
             
             if(gurus.length === 0) {
@@ -4079,39 +4109,89 @@ async function simpanProfilGuru(e) {
                 return;
             }
 
+            const today = new Date().toISOString().split('T')[0];
+            const presensiToday = GLOBAL_DATA.presensi[today] || {};
+            let totalProgressNasional = 0;
+
             gurus.forEach(u => {
+                // 1. Cek Kelengkapan Profil
+                let profilVal = (u.nip && u.nip !== '-') ? 100 : 50;
+                
+                // Cari Kelas
+                let kBase = 'Semua';
+                if (u.jabatan && u.jabatan.includes('Kelas')) {
+                    const match = u.jabatan.match(/\d/);
+                    if (match) kBase = match[0];
+                }
+
+                // 2. Cek Data Siswa
+                let siswaCount = 0;
+                (GLOBAL_DATA.siswa || []).forEach(s => {
+                    if (kBase === 'Semua' || s.kelas.includes(kBase)) siswaCount++;
+                });
+                let siswaVal = siswaCount > 0 ? 100 : 0;
+
+                // 3. Cek Presensi (Hari Ini)
+                let presensiVal = 0;
+                let siswaDiKelas = (GLOBAL_DATA.siswa || []).filter(s => kBase === 'Semua' || s.kelas.includes(kBase));
+                let sudahAbsen = 0;
+                siswaDiKelas.forEach(s => { if (presensiToday[s.nisn]) sudahAbsen++; });
+                if (siswaDiKelas.length > 0) presensiVal = Math.round((sudahAbsen / siswaDiKelas.length) * 100);
+
+                // 4. Cek Penilaian
+                let nilaiVal = 0;
+                let mapelKey = u.jabatan.includes('PJOK') ? 'PJOK' : u.jabatan.includes('PAI') ? 'Pendidikan Agama' : '';
+                let kunciCari = mapelKey ? `${mapelKey}_${kBase}` : `_${kBase}`;
+                let hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari));
+                if (hasNilai) nilaiVal = 100;
+
+                // 5. Cek Perangkat Ajar (Prota)
+                let jurnalVal = (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) ? 100 : 0;
+
+                // Kalkulasi Rata-Rata Guru
+                let rataRata = Math.round((profilVal + siswaVal + presensiVal + nilaiVal + jurnalVal) / 5);
+                totalProgressNasional += rataRata;
+
                 html += `
                     <div class="col-md-6 mb-4">
                         <div class="border rounded p-3 h-100 bg-white shadow-sm">
                             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                                 <span class="fw-bold text-dark"><i class="fas fa-chalkboard-teacher text-primary me-2"></i>${u.nama}</span>
-                                <span class="badge bg-secondary">Belum Ada Data (0%)</span>
+                                <span class="badge ${rataRata >= 75 ? 'bg-success' : rataRata >= 50 ? 'bg-warning' : 'bg-danger'}">${rataRata}% Selesai</span>
                             </div>
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Profil & Kelas</span> <span>0%</span></div>
-                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-light" style="width: 0%"></div></div>
+                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Profil & Kelas</span> <span>${profilVal}%</span></div>
+                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-primary" style="width: ${profilVal}%"></div></div>
                             </div>
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Data Siswa</span> <span>0%</span></div>
-                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-light" style="width: 0%"></div></div>
+                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Data Siswa</span> <span>${siswaVal}%</span></div>
+                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-info" style="width: ${siswaVal}%"></div></div>
                             </div>
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Presensi</span> <span>0%</span></div>
-                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-light" style="width: 0%"></div></div>
+                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Presensi Hari Ini</span> <span>${presensiVal}%</span></div>
+                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-success" style="width: ${presensiVal}%"></div></div>
                             </div>
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Penilaian</span> <span>0%</span></div>
-                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-light" style="width: 0%"></div></div>
+                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Penilaian</span> <span>${nilaiVal}%</span></div>
+                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-warning" style="width: ${nilaiVal}%"></div></div>
                             </div>
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Jurnal Harian</span> <span>0%</span></div>
-                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-light" style="width: 0%"></div></div>
+                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Perangkat Ajar (Prota)</span> <span>${jurnalVal}%</span></div>
+                                <div class="progress" style="height: 5px;"><div class="progress-bar bg-danger" style="width: ${jurnalVal}%"></div></div>
                             </div>
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
+
+            // Update Progress Nasional di Dashboard Admin Utama
+            const avgNasional = gurus.length > 0 ? Math.round(totalProgressNasional / gurus.length) : 0;
+            const targetStatCard = document.querySelector('#page-admin-dashboard .stat-card .bg-warning.bg-opacity-10');
+            if(targetStatCard && targetStatCard.parentElement) {
+                const h3 = targetStatCard.parentElement.querySelector('h3');
+                if(h3) h3.innerText = avgNasional + '%';
+            }
         }
 
         // FITUR BARU: Membuka PopUp Export PDF Presensi
@@ -4464,9 +4544,11 @@ async function simpanProfilGuru(e) {
             });
 
             renderProta(); renderProsem(); tutupModalProta();
+            // --- Tambahkan Baris Ini ---
+            if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+            if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+            
             showToast('Tersimpan di Prota! Jangan lupa klik tombol Sinkron.', 'success');
-        }
-
         function sinkronProtaManual() {
             renderProsem();
             showToast('Data berhasil disinkronisasi ke Menu Prosem!', 'success');
