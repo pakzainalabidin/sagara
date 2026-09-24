@@ -721,7 +721,16 @@ if (action === 'deletePesanBanyak') {
                             <div class="chat-messages" id="chat-messages-container">
                                 <div class="text-center text-muted small my-3">Mulai percakapan...</div>
                             </div>
-                            
+
+                            <!-- FITUR BARU: KOTAK PRATINJAU BALASAN -->
+                            <div id="reply-preview-box" class="px-3 py-2 bg-light border-top border-bottom" style="display: none; align-items: center; justify-content: space-between; font-size: 0.8rem; border-left: 4px solid var(--primary) !important;">
+                                <div style="flex-grow: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-left: 5px;">
+                                    <strong id="reply-preview-sender" class="text-primary"></strong><br>
+                                    <span id="reply-preview-text" class="text-muted"></span>
+                                </div>
+                                <button class="btn btn-sm btn-light text-danger p-1 ms-2 shadow-sm border" onclick="batalBalas()"><i class="fas fa-times"></i></button>
+                            </div>
+                            <!-- AKHIR KOTAK PRATINJAU -->
                             <div class="chat-input-box position-relative">
     <!-- Tombol Buka Panel Emoji -->
     <button class="btn btn-light rounded-circle d-flex align-items-center justify-content-center" id="btn-emoji" onclick="toggleEmojiPicker()" style="width: 45px; height: 45px; flex-shrink: 0; border: 1px solid #e2e8f0;">
@@ -2300,8 +2309,10 @@ function bukaHalamanPesan(navElement) {
 function pilihKontakChat(username, name) {
     activeChatUser = username;
     document.getElementById('chat-header-name').innerText = name;
+    batalBalas(); // <--- TAMBAHKAN BARIS INI (agar batal balas saat pindah kontak)
     
     const avatar = document.getElementById('chat-header-avatar');
+    // ... sisa kodenya biarkan sama ...
     if(username === 'all') {
         avatar.className = 'chat-avatar bg-primary';
         avatar.innerHTML = '<i class="fas fa-users"></i>';
@@ -2386,60 +2397,118 @@ function renderChatContacts() {
     });
 }
 
+// FITUR BARU: Logika Sistem Balas Pesan (Reply)
+        let replyingToMessage = null;
+
+        function siapkanBalasan(id) {
+            const msg = (GLOBAL_DATA.pesan || []).find(m => m.id === id);
+            if(!msg) return;
+
+            let senderName = 'Saya';
+            if (msg.sender !== currentUser.username) {
+                const sUser = (GLOBAL_DATA.users || []).find(u => u.username === msg.sender);
+                senderName = sUser ? sUser.nama : msg.sender;
+            }
+
+            // Simpan memori pesan yang akan dibalas
+            replyingToMessage = { id: msg.id, sender: senderName, text: msg.text };
+            
+            // Munculkan kotak pratinjau di atas kolom input
+            document.getElementById('reply-preview-sender').innerText = "Membalas " + senderName;
+            document.getElementById('reply-preview-text').innerText = msg.text.length > 50 ? msg.text.substring(0, 50) + '...' : msg.text;
+            document.getElementById('reply-preview-box').style.display = 'flex';
+            document.getElementById('chat-input-text').focus();
+        }
+
+        function batalBalas() {
+            replyingToMessage = null;
+            const box = document.getElementById('reply-preview-box');
+            if(box) box.style.display = 'none';
+        }
 
         function tutupChatMobile() {
             document.getElementById('chat-sidebar-mobile').classList.remove('hide-mobile');
         }
 
        function muatIsiChat() {
-    const container = document.getElementById('chat-messages-container');
-    container.innerHTML = '';
+            const container = document.getElementById('chat-messages-container');
+            container.innerHTML = '';
 
-    let hasMessages = false;
-    
-    (GLOBAL_DATA.pesan || []).forEach(msg => {
-        const isGroupChat = activeChatUser === 'all' && msg.receiver === 'all';
-        const isPrivateChat = (msg.sender === currentUser.username && msg.receiver === activeChatUser) || 
-                              (msg.sender === activeChatUser && msg.receiver === currentUser.username);
-
-        if (isGroupChat || isPrivateChat) {
-            hasMessages = true;
-            const isMe = msg.sender === currentUser.username;
+            let hasMessages = false;
             
-            // Logika Cerdas: Admin atau Kepala Sekolah berhak menghapus pesan siapapun, Guru hanya pesannya sendiri
-            const isAdmin = currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.toLowerCase().includes('kepala'));
-            const canDelete = isMe || isAdmin; 
+            (GLOBAL_DATA.pesan || []).forEach(msg => {
+                const isGroupChat = activeChatUser === 'all' && msg.receiver === 'all';
+                const isPrivateChat = (msg.sender === currentUser.username && msg.receiver === activeChatUser) || 
+                                      (msg.sender === activeChatUser && msg.receiver === currentUser.username);
 
-            const timeStr = new Date(msg.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            let senderName = 'Saya';
-            if(!isMe && isGroupChat) {
-                const sUser = GLOBAL_DATA.users.find(u => u.username === msg.sender);
-                senderName = sUser ? sUser.nama : msg.sender;
+                if (isGroupChat || isPrivateChat) {
+                    hasMessages = true;
+                    const isMe = msg.sender === currentUser.username;
+                    
+                    const isAdmin = currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.toLowerCase().includes('kepala'));
+                    const canDelete = isMe || isAdmin; 
+
+                    const timeStr = new Date(msg.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    let senderName = 'Saya';
+                    if(!isMe) {
+                        const sUser = GLOBAL_DATA.users.find(u => u.username === msg.sender);
+                        senderName = sUser ? sUser.nama : msg.sender;
+                    }
+
+                    const deleteIconColor = isMe ? 'text-white opacity-75' : 'text-danger opacity-50';
+                    const replyIconColor = isMe ? 'text-white opacity-75' : 'text-primary opacity-50';
+                    
+                    // Tombol Hapus & Balas
+                    const rightPosReply = canDelete ? '35px' : '12px';
+                    const deleteBtn = canDelete ? `<i class="fas fa-trash cursor-pointer ${deleteIconColor}" style="position: absolute; top: 10px; right: 12px; font-size: 0.8rem;" onclick="hapusPesanSatu(${msg.id})" title="Hapus Pesan"></i>` : '';
+                    const replyBtn = `<i class="fas fa-reply cursor-pointer ${replyIconColor}" style="position: absolute; top: 10px; right: ${rightPosReply}; font-size: 0.8rem;" onclick="siapkanBalasan(${msg.id})" title="Balas Pesan"></i>`;
+
+                    // Kotak Pratinjau Balasan
+                    let replyHtml = '';
+                    if (msg.replyTo) {
+                        replyHtml = `
+                            <div style="background: ${isMe ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)'}; padding: 5px 10px; border-radius: 4px; border-left: 3px solid ${isMe ? 'white' : 'var(--primary)'}; margin-bottom: 8px; font-size: 0.75rem; line-height: 1.2;">
+                                <strong style="color: ${isMe ? 'white' : 'var(--primary)'};">${msg.replyTo.sender}</strong><br>
+                                <span style="opacity: 0.9;">${msg.replyTo.text.length > 60 ? msg.replyTo.text.substring(0, 60) + '...' : msg.replyTo.text}</span>
+                            </div>
+                        `;
+                    }
+
+                    // --- FITUR BARU: PENDETEKSI MENTION (@) YANG MENGKILAP ---
+                    let pesanTeks = msg.text;
+                    
+                    // 1. Tag @semua (Pil Kuning Emas Terang)
+                    pesanTeks = pesanTeks.replace(/@semua/gi, `<strong style="background: #fef08a; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; display: inline-block; margin: 0 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">@semua</strong>`);
+                    
+                    // 2. Tag @NamaGuru (Pil Putih/Biru Terang)
+                    pesanTeks = pesanTeks.replace(/@([a-zA-Z0-9_]+)/g, function(match, nama) {
+                        if(nama.toLowerCase() === 'semua') return match; 
+                        return `<strong style="background: ${isMe ? 'white' : '#dbeafe'}; color: ${isMe ? 'var(--primary)' : '#1d4ed8'}; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; display: inline-block; margin: 0 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">@${nama}</strong>`;
+                    });
+                    // -------------------------------------------
+
+                    const paddingRight = canDelete ? '55px' : '35px';
+
+                    container.innerHTML += `
+                        <div class="msg-bubble ${isMe ? 'msg-me' : 'msg-other'} shadow-sm" style="padding-right: ${paddingRight};">
+                            ${replyBtn}
+                            ${deleteBtn}
+                            ${!isMe && isGroupChat ? `<div class="fw-bold" style="font-size: 0.75rem; color: var(--primary); margin-bottom: 3px;">${senderName}</div>` : ''}
+                            ${replyHtml}
+                            ${pesanTeks}
+                            <div class="msg-info" style="color: ${isMe ? '#e2e8f0' : '#94a3b8'};">${timeStr}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            if(!hasMessages) {
+                container.innerHTML = `<div class="text-center text-muted small my-auto"><i class="fas fa-comment-dots fa-3x opacity-25 mb-3"></i><br>Belum ada percakapan. Mulai kirim pesan!</div>`;
             }
 
-            // Tombol Tong Sampah
-            const deleteIconColor = isMe ? 'text-white opacity-75' : 'text-danger opacity-50';
-            const deleteBtn = canDelete ? `<i class="fas fa-trash cursor-pointer ${deleteIconColor}" style="position: absolute; top: 10px; right: 12px; font-size: 0.8rem;" onclick="hapusPesanSatu(${msg.id})" title="Hapus Pesan"></i>` : '';
-
-            // padding-right diperbesar agar teks tidak tertimpa ikon tong sampah
-            container.innerHTML += `
-                <div class="msg-bubble ${isMe ? 'msg-me' : 'msg-other'} shadow-sm" style="padding-right: 35px;">
-                    ${deleteBtn}
-                    ${!isMe && isGroupChat ? `<div class="fw-bold" style="font-size: 0.75rem; color: var(--primary); margin-bottom: 3px;">${senderName}</div>` : ''}
-                    ${msg.text}
-                    <div class="msg-info" style="color: ${isMe ? '#e2e8f0' : '#94a3b8'};">${timeStr}</div>
-                </div>
-            `;
+            container.scrollTop = container.scrollHeight;
         }
-    });
-
-    if(!hasMessages) {
-        container.innerHTML = `<div class="text-center text-muted small my-auto"><i class="fas fa-comment-dots fa-3x opacity-25 mb-3"></i><br>Belum ada percakapan. Mulai kirim pesan!</div>`;
-    }
-
-    container.scrollTop = container.scrollHeight;
-}
         
         async function kirimPesan() {
             const input = document.getElementById('chat-input-text');
@@ -2455,7 +2524,15 @@ function renderChatContacts() {
                 text: teks
             };
 
+            // Sisipkan payload balasan jika user sedang menekan tombol balas
+            if (replyingToMessage) {
+                msgObj.replyTo = replyingToMessage;
+            }
+
             GLOBAL_DATA.pesan.push(msgObj);
+            
+            batalBalas(); // Tutup kotak pratinjau balasan
+
             muatIsiChat();
             input.value = '';
             input.disabled = false;
@@ -4746,9 +4823,7 @@ async function simpanProfilGuru(e) {
             let cGanjil = 0, cGenap = 0;
             (GLOBAL_DATA.prota || []).forEach(p => {
                 // Logika Filter Mapel
-                if(selectedMapel !== 'Semua' && selectedMapel !== '') {
-                    if((p.mapel || '-') !== selectedMapel) return; 
-                }
+                if(selectedMapel !== 'Semua' && selectedMapel !== '' && p.mapel !== selectedMapel) return;
 
                 const tr = document.createElement('tr');
                 let cellBulan = '';
@@ -4757,8 +4832,16 @@ async function simpanProfilGuru(e) {
                     cGanjil++;
                     const mGanjil = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                     mGanjil.forEach(m => {
-                        if(p.bln === m) cellBulan += `<td class="bg-primary bg-opacity-10 text-primary align-middle"><span class="fw-bold">${p.mgg}</span><br><small>${p.hr}</small></td>`;
-                        else cellBulan += `<td></td>`;
+                        if(p.bln === m) {
+                            // FITUR BARU: Menambahkan Hari & Tanggal (p.tgl) dengan desain yang rapi
+                            cellBulan += `<td class="bg-primary bg-opacity-10 align-middle" style="min-width: 120px;">
+                                <div class="text-dark fw-bold mb-1" style="font-size: 0.7rem; line-height: 1.2;">${p.tgl}</div>
+                                <span class="badge bg-primary shadow-sm">${p.mgg}</span> 
+                                <span class="badge bg-info text-dark shadow-sm">${p.hr}</span>
+                            </td>`;
+                        } else {
+                            cellBulan += `<td></td>`;
+                        }
                     });
                     tr.innerHTML = `<td class="fw-bold text-primary">${p.mapel || '-'}</td><td class="fw-bold">${p.bab}</td><td class="text-start">${p.materi}</td><td class="text-start">${p.tp}</td><td class="fw-bold text-danger">${p.jp || '-'}</td>${cellBulan}`;
                     bGanjil.appendChild(tr);
@@ -4766,16 +4849,24 @@ async function simpanProfilGuru(e) {
                     cGenap++;
                     const mGenap = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
                     mGenap.forEach(m => {
-                        if(p.bln === m) cellBulan += `<td class="bg-success bg-opacity-10 text-success align-middle"><span class="fw-bold">${p.mgg}</span><br><small>${p.hr}</small></td>`;
-                        else cellBulan += `<td></td>`;
+                        if(p.bln === m) {
+                            // FITUR BARU: Menambahkan Hari & Tanggal (p.tgl) dengan desain yang rapi
+                            cellBulan += `<td class="bg-success bg-opacity-10 align-middle" style="min-width: 120px;">
+                                <div class="text-dark fw-bold mb-1" style="font-size: 0.7rem; line-height: 1.2;">${p.tgl}</div>
+                                <span class="badge bg-success shadow-sm">${p.mgg}</span> 
+                                <span class="badge bg-warning text-dark shadow-sm">${p.hr}</span>
+                            </td>`;
+                        } else {
+                            cellBulan += `<td></td>`;
+                        }
                     });
                     tr.innerHTML = `<td class="fw-bold text-primary">${p.mapel || '-'}</td><td class="fw-bold">${p.bab}</td><td class="text-start">${p.materi}</td><td class="text-start">${p.tp}</td><td class="fw-bold text-danger">${p.jp || '-'}</td>${cellBulan}`;
                     bGenap.appendChild(tr);
                 }
             });
 
-            if(cGanjil === 0) bGanjil.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Ganjil untuk Mapel ini.</td></tr>';
-            if(cGenap === 0) bGenap.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Genap untuk Mapel ini.</td></tr>';
+            if(cGanjil === 0) bGanjil.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Ganjil.</td></tr>';
+            if(cGenap === 0) bGenap.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Genap.</td></tr>';
         }
         function exportProta_PDF() {
             if(!window.jspdf) return showToast('Pustaka PDF belum termuat', 'error');
@@ -5459,8 +5550,16 @@ Materi Pembelajaran: ${mat}`;
                     cGanjil++;
                     const mGanjil = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                     mGanjil.forEach(m => {
-                        if(p.bln === m) cellBulan += `<td class="bg-primary bg-opacity-10 text-primary align-middle"><span class="fw-bold">${p.mgg}</span><br><small>${p.hr}</small></td>`;
-                        else cellBulan += `<td></td>`;
+                        if(p.bln === m) {
+                            // FITUR BARU: Menambahkan Hari & Tanggal (p.tgl)
+                            cellBulan += `<td class="bg-primary bg-opacity-10 align-middle" style="min-width: 120px;">
+                                <div class="text-dark fw-bold mb-1" style="font-size: 0.75rem; line-height: 1.2;">${p.tgl || '-'}</div>
+                                <span class="badge bg-primary shadow-sm">${p.mgg}</span> 
+                                <span class="badge bg-info text-dark shadow-sm">${p.hr}</span>
+                            </td>`;
+                        } else {
+                            cellBulan += `<td></td>`;
+                        }
                     });
                     tr.innerHTML = `<td class="fw-bold text-primary">${p.mapel || '-'}</td><td class="fw-bold">${p.bab}</td><td class="text-start">${p.materi}</td><td class="text-start">${p.tp}</td><td class="fw-bold text-danger">${p.jp || '-'}</td>${cellBulan}`;
                     bGanjil.appendChild(tr);
@@ -5468,8 +5567,16 @@ Materi Pembelajaran: ${mat}`;
                     cGenap++;
                     const mGenap = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
                     mGenap.forEach(m => {
-                        if(p.bln === m) cellBulan += `<td class="bg-success bg-opacity-10 text-success align-middle"><span class="fw-bold">${p.mgg}</span><br><small>${p.hr}</small></td>`;
-                        else cellBulan += `<td></td>`;
+                        if(p.bln === m) {
+                            // FITUR BARU: Menambahkan Hari & Tanggal (p.tgl)
+                            cellBulan += `<td class="bg-success bg-opacity-10 align-middle" style="min-width: 120px;">
+                                <div class="text-dark fw-bold mb-1" style="font-size: 0.75rem; line-height: 1.2;">${p.tgl || '-'}</div>
+                                <span class="badge bg-success shadow-sm">${p.mgg}</span> 
+                                <span class="badge bg-warning text-dark shadow-sm">${p.hr}</span>
+                            </td>`;
+                        } else {
+                            cellBulan += `<td></td>`;
+                        }
                     });
                     tr.innerHTML = `<td class="fw-bold text-primary">${p.mapel || '-'}</td><td class="fw-bold">${p.bab}</td><td class="text-start">${p.materi}</td><td class="text-start">${p.tp}</td><td class="fw-bold text-danger">${p.jp || '-'}</td>${cellBulan}`;
                     bGenap.appendChild(tr);
