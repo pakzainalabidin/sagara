@@ -416,11 +416,32 @@ function sinkronisasiMemoriChat() {
             jadwal: {}
         };
 
-        let GLOBAL_DATA = { users: [], profilSekolah: {}, siswa: [], presensi: {}, nilai: {}, pesan: [], buku: {}, jadwal: {} };
+        llet GLOBAL_DATA = { users: [], profilSekolah: {}, siswa: [], presensi: {}, nilai: {}, pesan: [], buku: {}, jadwal: {} };
         let currentUser = null;
         let isKaldikUploaded = false; 
         let activeChatUser = 'all'; 
         let isDataPrefetched = false; 
+
+        // FITUR BARU: MESIN AUTO-SAVE KE MEMORI BROWSER
+        setInterval(() => {
+            if (GLOBAL_DATA && GLOBAL_DATA.users && GLOBAL_DATA.users.length > 0) {
+                localStorage.setItem('SAGARA_LOCAL_DB', JSON.stringify(GLOBAL_DATA));
+            }
+        }, 1500); // Menyimpan diam-diam setiap 1.5 detik
+
+        function muatMemoriLokal() {
+            const memori = localStorage.getItem('SAGARA_LOCAL_DB');
+            if (memori) {
+                try {
+                    const dataTersimpan = JSON.parse(memori);
+                    if (dataTersimpan && dataTersimpan.users && dataTersimpan.users.length > 0) {
+                        GLOBAL_DATA = dataTersimpan;
+                        return true;
+                    }
+                } catch(e) {}
+            }
+            return false;
+        }
 
         async function fetchAPI(action, payload = {}) {
             if (SHOW_DEMO_UI || isGasUrlPlaceholder()) {
@@ -1943,14 +1964,19 @@ if (action === 'deletePesanBanyak') {
             
             document.getElementById('tanggal-presensi').value = getTanggalHariIni();
             
+            muatMemoriLokal(); // Tarik kembali data yang tersimpan sebelum server merespons
+            
             const taAdmin = document.getElementById('display-tahun-ajaran-admin');
             if(taAdmin) taAdmin.innerText = DUMMY_DB.schoolProfile.tahunAjaran;
 
             if(APP_MODE.isProduction && !isGasUrlPlaceholder()) {
                 fetchAPI('getInitialData').then(res => {
-                    if(res.success && res.data) {
+                    if(res.success && res.data && res.data.users && res.data.users.length > 0) {
                         GLOBAL_DATA = res.data;
-                        normalizeDataServer();
+                    } else {
+                        muatMemoriLokal(); // Pakai memori jika server kosong
+                    }
+                    normalizeDataServer();
                         if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                         if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
                         isDataPrefetched = true;
@@ -2157,7 +2183,12 @@ function sinkronkanMasterKey() {
             if (!isDataPrefetched) {
                 document.getElementById('main-loading').style.display = 'flex';
                 const res = await fetchAPI('getInitialData');
-                if(res.success) { GLOBAL_DATA = res.data; normalizeDataServer(); } else { GLOBAL_DATA = DUMMY_DB; }
+                if(res.success && res.data && res.data.users && res.data.users.length > 0) { 
+                    GLOBAL_DATA = res.data; 
+                } else { 
+                    muatMemoriLokal(); // Cegah data hilang diganti DUMMY_DB kosong
+                }
+                normalizeDataServer();
                 if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                 if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
                 document.getElementById('main-loading').style.display = 'none';
@@ -2901,8 +2932,11 @@ async function hapusSemuaRiwayat() {
             showToast('Menyegarkan data server...', 'info');
             
             const res = await fetchAPI('getInitialData');
-            if(res.success) {
-            GLOBAL_DATA = res.data;
+            if(res.success && res.data && res.data.users && res.data.users.length > 0) {
+                GLOBAL_DATA = res.data;
+            } else {
+                muatMemoriLokal();
+            }
             normalizeDataServer();
             isDataPrefetched = true;
         }
