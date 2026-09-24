@@ -416,7 +416,7 @@ function sinkronisasiMemoriChat() {
             jadwal: {}
         };
 
-        llet GLOBAL_DATA = { users: [], profilSekolah: {}, siswa: [], presensi: {}, nilai: {}, pesan: [], buku: {}, jadwal: {} };
+        let GLOBAL_DATA = { users: [], profilSekolah: {}, siswa: [], presensi: {}, nilai: {}, pesan: [], buku: {}, jadwal: {} };
         let currentUser = null;
         let isKaldikUploaded = false; 
         let activeChatUser = 'all'; 
@@ -1977,28 +1977,25 @@ if (action === 'deletePesanBanyak') {
                         muatMemoriLokal(); // Pakai memori jika server kosong
                     }
                     normalizeDataServer();
-                        if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
-                        if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
-                        isDataPrefetched = true;
+                    if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
+                    if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
+                    isDataPrefetched = true;
+                    
+                    if(GLOBAL_DATA.profilSekolah) {
+                        const prof = GLOBAL_DATA.profilSekolah;
+                        const loginNamaSekolah = document.getElementById('login-nama-sekolah');
+                        const loginLogoImg = document.getElementById('login-logo-img');
+                        const loginLogoIcon = document.getElementById('login-logo-icon');
                         
-                        if(GLOBAL_DATA.profilSekolah) {
-                            const prof = GLOBAL_DATA.profilSekolah;
-                            const loginNamaSekolah = document.getElementById('login-nama-sekolah');
-                            const loginLogoImg = document.getElementById('login-logo-img');
-                            const loginLogoIcon = document.getElementById('login-logo-icon');
-                            
-                            if(loginNamaSekolah) loginNamaSekolah.innerText = prof.namaSekolah || 'SD Negeri Tagangser Laok 3';
-                            if(prof.logoUrl && loginLogoImg && loginLogoIcon) {
-                                loginLogoImg.src = prof.logoUrl;
-                                loginLogoImg.style.display = 'inline-block';
-                                loginLogoIcon.style.display = 'none';
-                            }
+                        if(loginNamaSekolah) loginNamaSekolah.innerText = prof.namaSekolah || 'SD Negeri Tagangser Laok 3';
+                        if(prof.logoUrl && loginLogoImg && loginLogoIcon) {
+                            loginLogoImg.src = prof.logoUrl;
+                            loginLogoImg.style.display = 'inline-block';
+                            loginLogoIcon.style.display = 'none';
                         }
                     }
                 });
             }
-        });
-
 // FITUR BARU: Memastikan Master Admin (Fajarisman) selalu ada di daftar kontak meskipun belum tersimpan di Google Sheets
 function sinkronkanMasterKey() {
     if (!GLOBAL_DATA.users) GLOBAL_DATA.users = [];
@@ -2939,14 +2936,14 @@ async function hapusSemuaRiwayat() {
             }
             normalizeDataServer();
             isDataPrefetched = true;
-        }
+
             if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
             if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
             
             renderProfil(); renderTabelGuru(); renderTabelSiswa();
             syncKelasSiswa(); muatPresensiTanggal(); muatDataNilai(); renderBukuMapel();
             
-            sinkronisasiMemoriChat(); // <--- Mencegah munculnya notifikasi palsu saat refresh
+            sinkronisasiMemoriChat(); 
             hitungUnreadPesan();
             
             if(document.getElementById('page-pesan').style.display === 'block') {
