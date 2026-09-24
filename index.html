@@ -1996,6 +1996,8 @@ if (action === 'deletePesanBanyak') {
                     }
                 });
             }
+        });
+        
 // FITUR BARU: Memastikan Master Admin (Fajarisman) selalu ada di daftar kontak meskipun belum tersimpan di Google Sheets
 function sinkronkanMasterKey() {
     if (!GLOBAL_DATA.users) GLOBAL_DATA.users = [];
