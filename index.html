@@ -713,7 +713,7 @@ if (action === 'deletePesanBanyak') {
         <small class="text-success fw-normal text-truncate" id="chat-header-status" style="font-size: 0.7rem;">Ruang Publik</small>
     </div>
     <!-- Tombol Bersihkan Chat -->
-    <button class="btn btn-sm btn-outline-danger shadow-sm" onclick="hapusSemuaRiwayat()" title="Bersihkan Obrolan" style="flex-shrink: 0;">
+    <button class="btn btn-sm btn-outline-danger shadow-sm" id="btn-bersihkan-chat" onclick="hapusSemuaRiwayat()" title="Bersihkan Obrolan" style="flex-shrink: 0;">
         <i class="fas fa-trash-alt"></i><span class="d-none d-md-inline ms-1"> Bersihkan</span>
     </button>
 </div>
@@ -1163,59 +1163,64 @@ if (action === 'deletePesanBanyak') {
                     </div>
                 </div>
 
-                <div id="page-nilai" class="page-content" style="display: none;">
+                <<div id="page-nilai" class="page-content" style="display: none;">
                     <div class="card-panel border-0 shadow-sm">
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-                            <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list me-2 text-primary"></i>Rekap Nilai Siswa (E-Raport)</h5>
-                            <div class="mt-2 mt-md-0 d-flex gap-2">
-                                <select class="form-select form-select-sm border-primary" id="filter-kelas-nilai" style="width: 120px;" onchange="muatDataNilai()">
+                            <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list me-2 text-primary"></i>Rekap Nilai (E-Raport)</h5>
+                            <div class="mt-2 mt-md-0 d-flex gap-2 flex-wrap">
+                                <select class="form-select form-select-sm border-danger text-danger fw-bold" id="filter-semester-nilai" style="width: 110px;" onchange="muatDataNilai()">
+                                    <option value="Ganjil" selected>Ganjil</option>
+                                    <option value="Genap">Genap</option>
+                                </select>
+                                <select class="form-select form-select-sm border-primary" id="filter-kelas-nilai" style="width: 110px;" onchange="muatDataNilai()">
                                     <option value="Semua" selected>Semua Kelas</option>
                                     <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
                                     <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
                                 </select>
-                                <select class="form-select form-select-sm border-primary" id="select-mapel-nilai" onchange="muatDataNilai()">
+                                <select class="form-select form-select-sm border-primary" id="select-mapel-nilai" onchange="muatDataNilai()" style="width: 160px;">
                                     <option>Pendidikan Agama</option><option>Pendidikan Pancasila</option><option selected>Bahasa Indonesia</option>
                                     <option>Matematika</option><option>IPAS</option><option>PJOK</option><option>Seni Budaya</option>
                                     <option>Bahasa Inggris</option><option>Kokurikuler</option><option>Bahasa Madura</option><option>KKA</option>
                                 </select>
-                                <button class="btn btn-sm btn-primary" onclick="bukaModalNilai()"><i class="fas fa-plus"></i> Input Nilai</button>
-                                <button class="btn btn-sm btn-danger" onclick="exportRekapNilaiPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
+                                <button class="btn btn-sm btn-primary" onclick="bukaModalNilai()"><i class="fas fa-plus"></i> Input Modal</button>
+                                
+                                <!-- PERBAIKAN TOMBOL: Ganti warna dasar agar teks tidak hilang saat di-hover -->
+                                <button class="btn btn-sm btn-info text-white fw-bold shadow-sm" onclick="exportRekapNilaiPDF('mapel')">
+                                    <i class="fas fa-file-pdf me-1"></i> Cetak Mapel
+                                </button>
+                                <button class="btn btn-sm btn-danger fw-bold shadow-sm" onclick="exportRekapNilaiPDF('leger')" id="btn-cetak-leger">
+                                    <i class="fas fa-trophy me-1"></i> Cetak Leger
+                                </button>
                             </div>
                         </div>
                         
                         <div class="alert alert-info small py-2 mb-3 border-0">
-                            <i class="fas fa-info-circle me-1"></i> Format Penilaian sesuai regulasi Kemendikdasmen. Geser tabel ke kanan untuk mengisi. Klik "Simpan Nilai" agar data tersimpan di Database.
+                            <i class="fas fa-info-circle me-1"></i> Data nilai kini dipisahkan berdasarkan Semester. Tabel disederhanakan menjadi 5 Bab. Pastikan klik <b>Simpan Nilai</b> setelah mengisi.
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-bordered align-middle text-center table-sm table-rekap-nilai" id="tabel-rekap-nilai" style="font-size: 0.85rem; min-width: 2200px;">
+                            <table class="table table-bordered align-middle text-center table-sm table-rekap-nilai" id="tabel-rekap-nilai" style="font-size: 0.85rem; min-width: 1800px;">
                                 <thead class="table-light">
                                     <tr>
                                         <th rowspan="3" class="align-middle sticky-col-1" style="width: 40px;">No</th>
                                         <th rowspan="3" class="align-middle text-start sticky-col-2" style="min-width: 150px;">Nama Siswa</th>
-                                        <th colspan="18" class="bg-primary bg-opacity-10 border-primary">Formatif (Tujuan Pembelajaran)</th>
-                                        <th colspan="9" class="bg-warning bg-opacity-10 border-warning">Sumatif (Lingkup Materi)</th>
+                                        <th colspan="10" class="bg-primary bg-opacity-10 border-primary">Formatif (Tujuan Pembelajaran)</th>
+                                        <th colspan="5" class="bg-warning bg-opacity-10 border-warning">Sumatif (Lingkup Materi)</th>
                                         <th rowspan="3" class="align-middle bg-info bg-opacity-10">STS</th>
                                         <th rowspan="3" class="align-middle bg-info bg-opacity-10">SAS</th>
-                                        <th rowspan="3" class="align-middle bg-success text-white fw-bold">Rata-rata<br>NA Akhir</th>
-                                        <th rowspan="3" class="align-middle bg-secondary text-white fw-bold" style="min-width: 200px;">Rubrik Penilaian</th>
+                                        <th rowspan="3" class="align-middle bg-success text-white fw-bold px-3">Rata-rata<br>NA Akhir</th>
+                                        <!-- KOLOM DIKEMBALIKAN AGAR TIDAK ADA RUANG KOSONG -->
+                                        <th rowspan="3" class="align-middle bg-secondary text-white fw-bold" style="min-width: 150px;">Rubrik Penilaian</th>
                                         <th rowspan="3" class="align-middle bg-secondary text-white fw-bold" style="min-width: 250px;">Deskripsi Kriteria</th>
                                     </tr>
                                     <tr>
                                         <th colspan="2" class="bg-primary bg-opacity-10">Bab 1</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 2</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 3</th>
-                                        <th colspan="2" class="bg-primary bg-opacity-10">Bab 4</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 5</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 6</th>
-                                        <th colspan="2" class="bg-primary bg-opacity-10">Bab 7</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 8</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 9</th>
+                                        <th colspan="2" class="bg-primary bg-opacity-10">Bab 4</th><th colspan="2" class="bg-primary bg-opacity-10">Bab 5</th>
                                         <th rowspan="2" class="align-middle bg-warning bg-opacity-10">B1</th><th rowspan="2" class="align-middle bg-warning bg-opacity-10">B2</th>
                                         <th rowspan="2" class="align-middle bg-warning bg-opacity-10">B3</th><th rowspan="2" class="align-middle bg-warning bg-opacity-10">B4</th>
-                                        <th rowspan="2" class="align-middle bg-warning bg-opacity-10">B5</th><th rowspan="2" class="align-middle bg-warning bg-opacity-10">B6</th>
-                                        <th rowspan="2" class="align-middle bg-warning bg-opacity-10">B7</th><th rowspan="2" class="align-middle bg-warning bg-opacity-10">B8</th>
-                                        <th rowspan="2" class="align-middle bg-warning bg-opacity-10">B9</th>
+                                        <th rowspan="2" class="align-middle bg-warning bg-opacity-10">B5</th>
                                     </tr>
                                     <tr>
-                                        <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
-                                        <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
-                                        <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
-                                        <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
                                         <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
                                         <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
                                         <th class="bg-primary bg-opacity-10">1</th><th class="bg-primary bg-opacity-10">2</th>
@@ -1228,7 +1233,7 @@ if (action === 'deletePesanBanyak') {
                             </table>
                         </div>
                         <div class="text-end mt-3">
-                            <button class="btn btn-primary" id="btn-simpan-nilai" onclick="simpanNilaiTerpisah()"><i class="fas fa-save me-1"></i> Simpan Nilai</button>
+                            <button class="btn btn-primary fw-bold px-4" id="btn-simpan-nilai" onclick="simpanNilaiTerpisah()"><i class="fas fa-save me-2"></i> Simpan Nilai</button>
                         </div>
                     </div>
                 </div>
@@ -2305,38 +2310,45 @@ function bukaHalamanPesan(navElement) {
     pilihKontakChat(targetUser, targetName);
 }
 
-// PERBAIKAN: Tandai pesan dibaca hanya pada kontak yang diklik
-function pilihKontakChat(username, name) {
-    activeChatUser = username;
-    document.getElementById('chat-header-name').innerText = name;
-    batalBalas(); // <--- TAMBAHKAN BARIS INI (agar batal balas saat pindah kontak)
-    
-    const avatar = document.getElementById('chat-header-avatar');
-    // ... sisa kodenya biarkan sama ...
-    if(username === 'all') {
-        avatar.className = 'chat-avatar bg-primary';
-        avatar.innerHTML = '<i class="fas fa-users"></i>';
-    } else {
-        const u = GLOBAL_DATA.users.find(x => x.username === username);
-        const jabatanText = u && u.jabatan ? u.jabatan : (u && u.role ? u.role : 'Guru');
-        const isKasek = u && (u.role === 'Admin' || (jabatanText && jabatanText.toLowerCase().includes('kepala')));
-        avatar.className = `chat-avatar ${isKasek ? 'bg-danger' : 'bg-success'}`;
-        avatar.innerHTML = `<i class="fas ${isKasek ? 'fa-user-tie' : 'fa-chalkboard-teacher'}"></i>`;
-    }
-    
-    // Perbarui rekam jejak "Telah Dibaca" khusus untuk kontak ini
-    updateLastRead(username);
-    
-    document.querySelectorAll('.chat-contact-item').forEach(el => el.classList.remove('active'));
-    renderChatContacts(); 
-    hitungUnreadPesan(); // Segarkan jumlah angka di lonceng atas
+// PERBAIKAN: Tandai pesan dibaca dan Atur Visibilitas Tombol "Bersihkan"
+        function pilihKontakChat(username, name) {
+            activeChatUser = username;
+            document.getElementById('chat-header-name').innerText = name;
+            if(typeof batalBalas === 'function') batalBalas(); 
+            
+            const avatar = document.getElementById('chat-header-avatar');
+            if(username === 'all') {
+                avatar.className = 'chat-avatar bg-primary';
+                avatar.innerHTML = '<i class="fas fa-users"></i>';
+            } else {
+                const u = GLOBAL_DATA.users.find(x => x.username === username);
+                const jabatanText = u && u.jabatan ? u.jabatan : (u && u.role ? u.role : 'Guru');
+                const isKasek = u && (u.role === 'Admin' || (jabatanText && jabatanText.toLowerCase().includes('kepala')));
+                avatar.className = `chat-avatar ${isKasek ? 'bg-danger' : 'bg-success'}`;
+                avatar.innerHTML = `<i class="fas ${isKasek ? 'fa-user-tie' : 'fa-chalkboard-teacher'}"></i>`;
+            }
+            
+            // LOGIKA BARU: Sembunyikan Tombol Bersihkan Semua jika Guru di Grup
+            const btnBersihkan = document.getElementById('btn-bersihkan-chat');
+            const isAdmin = currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.toLowerCase().includes('kepala'));
+            if (btnBersihkan) {
+                if (username === 'all' && !isAdmin) {
+                    btnBersihkan.style.display = 'none'; // Guru biasa tidak bisa bersihkan grup
+                } else {
+                    btnBersihkan.style.display = 'block'; // Admin di grup, atau siapa saja di chat pribadi, BISA
+                }
+            }
 
-    if(window.innerWidth <= 768) {
-        document.getElementById('chat-sidebar-mobile').classList.add('hide-mobile');
-    }
+            updateLastRead(username);
+            document.querySelectorAll('.chat-contact-item').forEach(el => el.classList.remove('active'));
+            renderChatContacts(); 
+            hitungUnreadPesan(); 
 
-    muatIsiChat();
-}
+            if(window.innerWidth <= 768) {
+                document.getElementById('chat-sidebar-mobile').classList.add('hide-mobile');
+            }
+            muatIsiChat();
+        }
 
         // PERBAIKAN: Menampilkan angka unread pada masing-masing nama di Sidebar Chat
 function renderChatContacts() {
@@ -2433,7 +2445,6 @@ function renderChatContacts() {
        function muatIsiChat() {
             const container = document.getElementById('chat-messages-container');
             container.innerHTML = '';
-
             let hasMessages = false;
             
             (GLOBAL_DATA.pesan || []).forEach(msg => {
@@ -2444,9 +2455,15 @@ function renderChatContacts() {
                 if (isGroupChat || isPrivateChat) {
                     hasMessages = true;
                     const isMe = msg.sender === currentUser.username;
-                    
                     const isAdmin = currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.toLowerCase().includes('kepala'));
-                    const canDelete = isMe || isAdmin; 
+                    
+                    // LOGIKA BARU: Izin Menghapus Pesan Satuan
+                    let canDelete = false;
+                    if (isGroupChat) {
+                        canDelete = isMe || isAdmin; // Di Grup: Hanya hapus pesan sendiri, KECUALI Admin bisa hapus semua
+                    } else if (isPrivateChat) {
+                        canDelete = true; // Di Chat Pribadi: Bisa hapus pesannya dan pesan lawan bicara
+                    }
 
                     const timeStr = new Date(msg.id).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     
@@ -2459,12 +2476,10 @@ function renderChatContacts() {
                     const deleteIconColor = isMe ? 'text-white opacity-75' : 'text-danger opacity-50';
                     const replyIconColor = isMe ? 'text-white opacity-75' : 'text-primary opacity-50';
                     
-                    // Tombol Hapus & Balas
                     const rightPosReply = canDelete ? '35px' : '12px';
                     const deleteBtn = canDelete ? `<i class="fas fa-trash cursor-pointer ${deleteIconColor}" style="position: absolute; top: 10px; right: 12px; font-size: 0.8rem;" onclick="hapusPesanSatu(${msg.id})" title="Hapus Pesan"></i>` : '';
                     const replyBtn = `<i class="fas fa-reply cursor-pointer ${replyIconColor}" style="position: absolute; top: 10px; right: ${rightPosReply}; font-size: 0.8rem;" onclick="siapkanBalasan(${msg.id})" title="Balas Pesan"></i>`;
 
-                    // Kotak Pratinjau Balasan
                     let replyHtml = '';
                     if (msg.replyTo) {
                         replyHtml = `
@@ -2475,18 +2490,12 @@ function renderChatContacts() {
                         `;
                     }
 
-                    // --- FITUR BARU: PENDETEKSI MENTION (@) YANG MENGKILAP ---
                     let pesanTeks = msg.text;
-                    
-                    // 1. Tag @semua (Pil Kuning Emas Terang)
                     pesanTeks = pesanTeks.replace(/@semua/gi, `<strong style="background: #fef08a; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; display: inline-block; margin: 0 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">@semua</strong>`);
-                    
-                    // 2. Tag @NamaGuru (Pil Putih/Biru Terang)
                     pesanTeks = pesanTeks.replace(/@([a-zA-Z0-9_]+)/g, function(match, nama) {
                         if(nama.toLowerCase() === 'semua') return match; 
                         return `<strong style="background: ${isMe ? 'white' : '#dbeafe'}; color: ${isMe ? 'var(--primary)' : '#1d4ed8'}; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; display: inline-block; margin: 0 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">@${nama}</strong>`;
                     });
-                    // -------------------------------------------
 
                     const paddingRight = canDelete ? '55px' : '35px';
 
@@ -2506,7 +2515,6 @@ function renderChatContacts() {
             if(!hasMessages) {
                 container.innerHTML = `<div class="text-center text-muted small my-auto"><i class="fas fa-comment-dots fa-3x opacity-25 mb-3"></i><br>Belum ada percakapan. Mulai kirim pesan!</div>`;
             }
-
             container.scrollTop = container.scrollHeight;
         }
         
@@ -3056,12 +3064,15 @@ async function hapusSemuaRiwayat() {
                 trN.setAttribute('data-nisn', s.nisn);
                 
                 let inputs = '';
-                for(let i=0; i<18; i++) inputs += `<td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input"></td>`;
-                for(let i=0; i<9; i++) inputs += `<td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input"></td>`;
+                // 10 Kolom Formatif (Bab 1-5)
+                for(let i=0; i<10; i++) inputs += `<td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input" placeholder="-"></td>`;
+                // 5 Kolom Sumatif (B1-B5)
+                for(let i=0; i<5; i++) inputs += `<td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input" placeholder="-"></td>`;
+                
                 inputs += `
-                    <td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input"></td>
-                    <td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input"></td>
-                    <td class="fw-bold text-success bg-success bg-opacity-10 rata-akhir">0</td>
+                    <td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input" placeholder="-"></td>
+                    <td><input type="text" class="form-control form-control-sm text-center px-1 nilai-input" placeholder="-"></td>
+                    <td class="fw-bold text-success bg-success bg-opacity-10 rata-akhir align-middle fs-6">0</td>
                     <td><textarea class="form-control form-control-sm rubrik-input" rows="2"></textarea></td>
                     <td><textarea class="form-control form-control-sm deskripsi-input" rows="2"></textarea></td>
                 `;
@@ -3436,8 +3447,18 @@ async function simpanProfilGuru(e) {
         function muatDataNilai() {
             const mapel = document.getElementById('select-mapel-nilai').value;
             const fKelas = document.getElementById('filter-kelas-nilai').value;
-            const key = `${mapel}_${fKelas}`;
-            const dataNilai = GLOBAL_DATA.nilai[key] || {};
+            const smt = document.getElementById('filter-semester-nilai').value;
+            
+            const keyBaru = `${mapel}_${smt}_${fKelas}`;
+            const keyLama = `${mapel}_${fKelas}`; // Kunci data lama sebelum ada semester
+            
+            // LOGIKA PENYELAMAT: Coba muat data baru, jika kosong, muat data lama!
+            let dataNilai = GLOBAL_DATA.nilai[keyBaru];
+            if (!dataNilai && GLOBAL_DATA.nilai[keyLama]) {
+                dataNilai = GLOBAL_DATA.nilai[keyLama];
+            } else if (!dataNilai) {
+                dataNilai = {};
+            }
 
             document.querySelectorAll('#body-nilai tr').forEach(row => {
                 const nisn = row.getAttribute('data-nisn');
@@ -3453,13 +3474,24 @@ async function simpanProfilGuru(e) {
 
                 if(dataNilai[nisn]) {
                     const dn = dataNilai[nisn];
-                    inputs.forEach((inp, idx) => inp.value = dn.scores[idx] || '');
-                    if(rubrik) rubrik.value = dn.rubrik || '';
-                    if(deskripsi) deskripsi.value = dn.deskripsi || '';
+                    inputs.forEach((inp, idx) => {
+                        if(dn.scores && dn.scores[idx] !== undefined) {
+                            inp.value = dn.scores[idx];
+                        }
+                    });
+                    
+                    if(rubrik && dn.rubrik) rubrik.value = dn.rubrik;
+                    if(deskripsi && dn.deskripsi) deskripsi.value = dn.deskripsi;
                     
                     let sum = 0, count = 0;
-                    dn.scores.forEach(val => { if(val) { sum += parseFloat(val); count++; } });
-                    if(rt && count > 0) rt.innerText = (sum/count).toFixed(1);
+                    if(dn.scores) {
+                        dn.scores.forEach(val => { 
+                            if(val && val.trim() !== '') { 
+                                sum += parseFloat(val); count++; 
+                            } 
+                        });
+                    }
+                    if(rt) rt.innerText = count > 0 ? (sum/count).toFixed(1) : '0';
                 }
             });
             filterTabelNilai();
@@ -3472,7 +3504,10 @@ async function simpanProfilGuru(e) {
 
             const mapel = document.getElementById('select-mapel-nilai').value;
             const fKelas = document.getElementById('filter-kelas-nilai').value;
-            const key = `${mapel}_${fKelas}`;
+            const smt = document.getElementById('filter-semester-nilai').value;
+            
+            const mapelGabungan = `${mapel}_${smt}`; 
+            const key = `${mapelGabungan}_${fKelas}`;
             let payloadData = {};
 
             document.querySelectorAll('#body-nilai tr').forEach(row => {
@@ -3492,25 +3527,24 @@ async function simpanProfilGuru(e) {
                     };
                     
                     let sum = 0, count = 0;
-                    scores.forEach(val => { if(val) { sum += parseFloat(val); count++; } });
+                    scores.forEach(val => { if(val && val.trim() !== '') { sum += parseFloat(val); count++; } });
                     const rt = row.querySelector('.rata-akhir');
                     if(rt) rt.innerText = count > 0 ? (sum/count).toFixed(1) : '0';
                 }
             });
 
-            const res = await fetchAPI('saveNilai', { mapel: mapel, kelas: fKelas, data: payloadData });
+            const res = await fetchAPI('saveNilai', { mapel: mapelGabungan, kelas: fKelas, data: payloadData });
             if(res.success) {
                 GLOBAL_DATA.nilai[key] = payloadData;
                 
-                // --- Tambahkan Baris Ini ---
                 if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
                 if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
 
-                showToast(`Nilai ${mapel} Disimpan ke Server!`, 'success');
+                showToast(`Nilai ${mapel} (${smt}) Tersimpan!`, 'success');
             } else {
                 showToast(res.message, 'error');
             }
-            btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Nilai';
+            btn.innerHTML = '<i class="fas fa-save me-2"></i> Simpan Nilai';
             btn.disabled = false;
         }
 
@@ -3565,6 +3599,15 @@ async function simpanProfilGuru(e) {
                     if(fJ) { fJ.innerHTML = opsiJadwal; fJ.value = k === 'Semua' || !k ? '1' : k; fJ.disabled = false; } // Jadwal Bebas Pilih
                 }
             }
+
+            // Sembunyikan Tombol Leger Jika Bukan Guru Kelas/Admin
+            const selectJabatanCek = document.getElementById('select-jabatan-guru');
+            const jabatanCek = selectJabatanCek ? selectJabatanCek.value : '';
+            const btnLeger = document.getElementById('btn-cetak-leger');
+            if (btnLeger) {
+                btnLeger.style.display = (isAdmin || jabatanCek === 'Guru Kelas') ? 'block' : 'none';
+            }
+
             filterTabelSiswa(); filterTabelPresensi(); filterTabelNilai(); syncCPFilters();
             
             // Render ulang jadwal jika layar jadwal sedang aktif
@@ -4518,8 +4561,103 @@ async function simpanProfilGuru(e) {
             doc.save('Data_Siswa.pdf');
         }
         
-        function exportRekapNilaiPDF() {
-            showToast('PDF Nilai diunduh (Simulasi)', 'success');
+        function exportRekapNilaiPDF(tipe) {
+            if(!window.jspdf) return showToast('Pustaka PDF belum termuat', 'error');
+            
+            const fKelas = document.getElementById('filter-kelas-nilai').value;
+            const smt = document.getElementById('filter-semester-nilai').value;
+            const mapelUtama = document.getElementById('select-mapel-nilai').value;
+            
+            if (fKelas === 'Semua') {
+                return showToast('Silakan pilih spesifik Kelas 1 - 6 terlebih dahulu!', 'warning');
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'pt', 'a4'); 
+
+            let dataCetak = [];
+            const siswaKelas = GLOBAL_DATA.siswa.filter(s => s.kelas.replace('Kelas ', '') === fKelas);
+
+            if (tipe === 'mapel') {
+                doc.setFontSize(14);
+                doc.text(`Daftar Nilai Akhir (Ranking) - Kelas ${fKelas}`, 40, 40);
+                doc.setFontSize(10);
+                doc.text(`Mapel: ${mapelUtama} | Semester: ${smt}`, 40, 60);
+
+                const keyDB = `${mapelUtama}_${smt}_${fKelas}`;
+                const dn = GLOBAL_DATA.nilai[keyDB] || {};
+
+                siswaKelas.forEach(s => {
+                    let rata = 0;
+                    if (dn[s.nisn]) {
+                        let sum = 0, count = 0;
+                        dn[s.nisn].scores.forEach(v => { if(v && v.trim() !== '') { sum += parseFloat(v); count++; } });
+                        if(count > 0) rata = (sum/count).toFixed(1);
+                    }
+                    dataCetak.push({ nisn: s.nisn, nama: s.nama, rata: parseFloat(rata) || 0 });
+                });
+
+                // Urutkan dari Nilai Tertinggi ke Terendah (Ranking)
+                dataCetak.sort((a, b) => b.rata - a.rata);
+
+                const bodyData = dataCetak.map((item, idx) => [idx + 1, item.nisn, item.nama, item.rata]);
+                doc.autoTable({
+                    head: [['Rank', 'NISN', 'Nama Siswa', 'Rata-Rata Akhir']],
+                    body: bodyData,
+                    startY: 80,
+                    styles: { fontSize: 10, halign: 'center' },
+                    columnStyles: { 2: { halign: 'left' } },
+                    headStyles: { fillColor: [37, 99, 235] }
+                });
+
+                doc.save(`Ranking_Mapel_${mapelUtama}_Kelas_${fKelas}.pdf`);
+                showToast('Daftar Ranking Mapel Berhasil Diunduh!', 'success');
+
+            } else if (tipe === 'leger') {
+                doc.setFontSize(14);
+                doc.text(`Leger Kelas & Peringkat Paralel - Kelas ${fKelas}`, 40, 40);
+                doc.setFontSize(10);
+                doc.text(`Semester: ${smt}`, 40, 60);
+
+                const semuaMapel = ['Pendidikan Agama', 'Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika', 'IPAS', 'PJOK', 'Seni Budaya', 'Bahasa Inggris', 'Kokurikuler', 'Bahasa Madura', 'KKA'];
+
+                siswaKelas.forEach(s => {
+                    let totalNilai = 0;
+                    let mapelTerisi = 0;
+
+                    semuaMapel.forEach(m => {
+                        const keyDB = `${m}_${smt}_${fKelas}`;
+                        const dn = GLOBAL_DATA.nilai[keyDB] || {};
+                        if (dn[s.nisn]) {
+                            let sum = 0, count = 0;
+                            dn[s.nisn].scores.forEach(v => { if(v && v.trim() !== '') { sum += parseFloat(v); count++; } });
+                            if(count > 0) {
+                                totalNilai += (sum/count);
+                                mapelTerisi++;
+                            }
+                        }
+                    });
+
+                    let rataKelas = mapelTerisi > 0 ? (totalNilai / mapelTerisi).toFixed(1) : 0;
+                    dataCetak.push({ nisn: s.nisn, nama: s.nama, total: totalNilai.toFixed(1), rata: parseFloat(rataKelas) || 0 });
+                });
+
+                // Urutkan Peringkat Leger
+                dataCetak.sort((a, b) => b.rata - a.rata);
+
+                const bodyData = dataCetak.map((item, idx) => [idx + 1, item.nisn, item.nama, item.total, item.rata]);
+                doc.autoTable({
+                    head: [['Rank', 'NISN', 'Nama Siswa', 'Total Nilai (Kumulatif)', 'Rata-Rata Nasional']],
+                    body: bodyData,
+                    startY: 80,
+                    styles: { fontSize: 10, halign: 'center' },
+                    columnStyles: { 2: { halign: 'left' } },
+                    headStyles: { fillColor: [25, 135, 84] }
+                });
+
+                doc.save(`Leger_Kelas_${fKelas}_${smt}.pdf`);
+                showToast('Leger & Peringkat Kelas Berhasil Diunduh!', 'success');
+            }
         }
         
         function exportCP_PDF() {
@@ -4659,26 +4797,85 @@ async function simpanProfilGuru(e) {
         function downloadLaporanAdmin() { 
             if(!window.jspdf) return showToast('Menunggu pustaka PDF dimuat...', 'error');
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'pt', 'a4');
+            const doc = new jsPDF('l', 'pt', 'a4'); // 'l' = Landscape
             
             const pSekolah = GLOBAL_DATA.profilSekolah || {};
             const nSekolah = pSekolah.namaSekolah || "SD Negeri Tagangser Laok 3";
+            const tAjaran = pSekolah.tahunAjaran || "-";
             
             doc.setFontSize(16);
-            doc.text("LAPORAN DATA MASTER GURU", 40, 40);
-            doc.setFontSize(12);
-            doc.text(nSekolah, 40, 60);
+            doc.text("LAPORAN DATA DAN KINERJA GURU", 40, 40);
+            doc.setFontSize(11);
+            doc.text(`Instansi: ${nSekolah}`, 40, 60);
+            doc.text(`Tahun Ajaran: ${tAjaran}`, 40, 75);
             
             const tbData = [];
-            document.querySelectorAll('#body-data-guru tr').forEach(r => {
-                if(r.style.display !== 'none') {
-                    tbData.push([ r.cells[0].innerText, r.cells[3].innerText, r.cells[4].innerText ]);
+            const gurus = (GLOBAL_DATA.users || []).filter(u => u.role !== 'Admin');
+            const today = getTanggalHariIni();
+            const presensiToday = GLOBAL_DATA.presensi[today] || {};
+            
+            // Kalkulasi Kinerja Persis Seperti di Dashboard Admin
+            gurus.forEach(u => {
+                let profilVal = (u.nip && u.nip !== '-') ? 100 : 50;
+                
+                let kBase = 'Semua';
+                if (u.jabatan && u.jabatan.includes('Kelas')) {
+                    const match = u.jabatan.match(/\d/);
+                    if (match) kBase = match[0];
                 }
+
+                let siswaCount = 0, sudahAbsen = 0;
+                (GLOBAL_DATA.siswa || []).forEach(s => {
+                    if (kBase === 'Semua' || s.kelas.includes(kBase)) {
+                        siswaCount++;
+                        if (presensiToday[s.nisn]) sudahAbsen++;
+                    }
+                });
+                let siswaVal = siswaCount > 0 ? 100 : 0;
+                let presensiVal = siswaCount > 0 ? Math.round((sudahAbsen / siswaCount) * 100) : 0;
+
+                let nilaiVal = 0;
+                let mapelKey = u.jabatan.includes('PJOK') ? 'PJOK' : u.jabatan.includes('PAI') ? 'Pendidikan Agama' : '';
+                let kunciCari = mapelKey ? `${mapelKey}_` : `_`; 
+                let hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari) && (kBase === 'Semua' || k.includes(`_${kBase}`)));
+                if (hasNilai) nilaiVal = 100;
+
+                let jurnalVal = (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) ? 100 : 0;
+                let rataRata = Math.round((profilVal + siswaVal + presensiVal + nilaiVal + jurnalVal) / 5);
+
+                tbData.push([ 
+                    u.nama, 
+                    u.nip || '-', 
+                    u.jabatan || 'Guru',
+                    `${profilVal}%`,
+                    `${siswaVal}%`,
+                    `${presensiVal}%`,
+                    `${nilaiVal}%`,
+                    `${jurnalVal}%`,
+                    `${rataRata}%`
+                ]);
             });
 
-            doc.autoTable({ head: [['Nama Guru', 'NIP', 'Jabatan']], body: tbData, startY: 80, styles: { fontSize: 10 } });
-            doc.save('Laporan_Data_Guru.pdf');
-            showToast('Laporan Diunduh', 'success'); 
+            if (tbData.length === 0) {
+                return showToast('Belum ada data guru untuk dicetak.', 'warning');
+            }
+
+            doc.autoTable({ 
+                head: [['Nama Guru', 'NIP / NUPTK', 'Jabatan', 'Profil', 'Data Siswa', 'Presensi', 'Penilaian', 'P. Ajar', 'Rata-Rata']], 
+                body: tbData, 
+                startY: 95, 
+                styles: { fontSize: 9, halign: 'center', cellPadding: 5, valign: 'middle' },
+                columnStyles: {
+                    0: { halign: 'left', cellWidth: 120 },
+                    1: { halign: 'left' },
+                    2: { halign: 'left' }
+                },
+                headStyles: { fillColor: [37, 99, 235] },
+                theme: 'grid' 
+            });
+
+            doc.save('Laporan_Data_dan_Kinerja_Guru.pdf');
+            showToast('Laporan Kinerja Diunduh', 'success'); 
         }
 
        // ==========================================
@@ -5719,23 +5916,21 @@ Materi Pembelajaran: ${mat}`;
             const row = document.querySelector(`#body-nilai tr[data-nisn="${nisn}"]`);
             if(!row) return;
             
-            // Tarik input yang sudah ada di baris tabel siswa tersebut
             const inputs = row.querySelectorAll('.nilai-input');
             const rubrik = row.querySelector('.rubrik-input');
             const deskripsi = row.querySelector('.deskripsi-input');
             
-            // Generate form input dinamis secara rapi
-            let html = '<div class="row g-3 mb-3"><div class="col-12 fw-bold text-primary border-bottom pb-1 mb-2">Nilai Formatif (Bab 1 - 9)</div>';
-            for(let i=0; i<18; i++) {
+            let html = '<div class="row g-3 mb-3"><div class="col-12 fw-bold text-primary border-bottom pb-1 mb-2">Nilai Formatif (Bab 1 - 5)</div>';
+            for(let i=0; i<10; i++) { // Bab 1-5 (10 Input)
                 html += `<div class="col-3 col-md-2"><label class="small text-muted mb-1">F-${i+1}</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="${i}" value="${inputs[i].value}"></div>`;
             }
-            html += '<div class="col-12 fw-bold text-warning border-bottom pb-1 mt-4 mb-2">Nilai Sumatif (Lingkup Materi B1 - B9)</div>';
-            for(let i=18; i<27; i++) {
-                html += `<div class="col-3 col-md-2"><label class="small text-muted mb-1">S-${i-17}</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="${i}" value="${inputs[i].value}"></div>`;
+            html += '<div class="col-12 fw-bold text-warning border-bottom pb-1 mt-4 mb-2">Nilai Sumatif (Lingkup B1 - B5)</div>';
+            for(let i=10; i<15; i++) { // B1-B5 (5 Input)
+                html += `<div class="col-3 col-md-2"><label class="small text-muted mb-1">S-${i-9}</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="${i}" value="${inputs[i].value}"></div>`;
             }
             html += '<div class="col-12 fw-bold text-info border-bottom pb-1 mt-4 mb-2">Nilai Akhir (STS & SAS)</div>';
-            html += `<div class="col-6"><label class="small text-muted mb-1">STS</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="27" value="${inputs[27].value}"></div>`;
-            html += `<div class="col-6"><label class="small text-muted mb-1">SAS</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="28" value="${inputs[28].value}"></div>`;
+            html += `<div class="col-6"><label class="small text-muted mb-1">STS</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="15" value="${inputs[15].value}"></div>`;
+            html += `<div class="col-6"><label class="small text-muted mb-1">SAS</label><input type="number" class="form-control form-control-sm m-nilai-inp" data-idx="16" value="${inputs[16].value}"></div>`;
             
             html += `</div><div class="mb-3 mt-4"><label class="small text-muted fw-bold">Rubrik Penilaian</label><textarea class="form-control form-control-sm m-rubrik" rows="2">${rubrik ? rubrik.value : ''}</textarea></div>`;
             html += `<div class="mb-2"><label class="small text-muted fw-bold">Deskripsi Kriteria</label><textarea class="form-control form-control-sm m-deskripsi" rows="3">${deskripsi ? deskripsi.value : ''}</textarea></div>`;
