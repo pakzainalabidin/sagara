@@ -356,6 +356,39 @@ function updateLastRead(contactId) {
     localStorage.setItem('last_read_chat_' + currentUser.username + '_' + contactId, maxId.toString());
 }
 
+// FITUR BARU: Mencegah notifikasi palsu/membludak saat pertama kali login di akun atau perangkat baru
+function sinkronisasiMemoriChat() {
+    if (!currentUser) return;
+    
+    // 1. Sinkronisasi memori untuk Grup Semua Guru
+    let keyAll = 'last_read_chat_' + currentUser.username + '_all';
+    if (localStorage.getItem(keyAll) === null) {
+        let maxIdAll = 0;
+        (GLOBAL_DATA.pesan || []).forEach(m => {
+            if (m.receiver === 'all' && m.id > maxIdAll) maxIdAll = m.id;
+        });
+        localStorage.setItem(keyAll, maxIdAll.toString());
+    }
+
+    // 2. Sinkronisasi memori untuk Chat Pribadi
+    (GLOBAL_DATA.users || []).forEach(u => {
+        if (u.username !== currentUser.username) {
+            let keyPriv = 'last_read_chat_' + currentUser.username + '_' + u.username;
+            if (localStorage.getItem(keyPriv) === null) {
+                let maxIdPriv = 0;
+                (GLOBAL_DATA.pesan || []).forEach(m => {
+                    if (((m.sender === currentUser.username && m.receiver === u.username) || 
+                         (m.sender === u.username && m.receiver === currentUser.username)) && 
+                        m.id > maxIdPriv) {
+                        maxIdPriv = m.id;
+                    }
+                });
+                localStorage.setItem(keyPriv, maxIdPriv.toString());
+            }
+        }
+    });
+}
+
         const APP_MODE = {
             isPreview: APP_CONFIG.IS_PREVIEW === true && isGasUrlPlaceholder() && isCanvasOrLocalPreview(),
             isProduction: isBloggerRuntime() || isGasUrlValid() || APP_CONFIG.IS_PREVIEW === false
@@ -514,7 +547,7 @@ if (action === 'deletePesanBanyak') {
                         <label class="form-label small fw-bold">Password</label>
                         <div class="position-relative">
                             <input type="password" id="password" class="form-control" autocomplete="off" style="padding-right: 40px;" required oninput="mulaiUnduhDataBackground()" onkeydown="cekEnterBebasHambatan(event)">
-                            <i class="fas fa-eye text-muted cursor-pointer position-absolute top-50 end-0 translate-middle-y me-3" id="togglePasswordIcon" onclick="togglePasswordVisibility()" style="z-index: 10;"></i>
+                            <i class="fas fa-eye-slash text-muted cursor-pointer position-absolute top-50 end-0 translate-middle-y me-3" id="togglePasswordIcon" onclick="togglePasswordVisibility()" style="z-index: 10;"></i>
                         </div>
                     </div>
                     <button type="button" class="btn btn-primary w-100 fw-bold py-2" id="btn-login" onclick="handleLogin()">
@@ -1976,7 +2009,8 @@ function sinkronkanMasterKey() {
             const icon = document.getElementById('togglePasswordIcon');
             if (pwd.type === 'password') { 
                 pwd.type = 'text'; 
-                icon.classList.replace('fa-eye', 'fa-eye-slash'); 
+                // Password terlihat -> Mata Terbuka
+                icon.classList.replace('fa-eye-slash', 'fa-eye'); 
                 pwd.focus();
                 
                 setTimeout(() => {
@@ -1984,7 +2018,8 @@ function sinkronkanMasterKey() {
                 }, 50);
             } else { 
                 pwd.type = 'password'; 
-                icon.classList.replace('fa-eye-slash', 'fa-eye'); 
+                // Password tersembunyi -> Mata Dicoret
+                icon.classList.replace('fa-eye', 'fa-eye-slash'); 
             }
             
             setTimeout(() => {
@@ -1997,8 +2032,9 @@ function sinkronkanMasterKey() {
             const icon = document.getElementById('togglePasswordIcon');
             if(pwd) pwd.type = 'password';
             if(icon) {
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+                // Kembalikan ke Mata Dicoret saat reset
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
             }
         }
 
@@ -2116,7 +2152,9 @@ function sinkronkanMasterKey() {
             renderProfil();
             renderTabelGuru();
             renderTabelSiswa();
-            hitungUnreadPesan(); 
+            
+            sinkronisasiMemoriChat(); // <--- Mencegah munculnya notifikasi palsu
+            hitungUnreadPesan();
 
             const role = currentUser.role || currentUser.jabatan || '';
             const isAdmin = role && (role.toLowerCase().includes('admin') || role.toLowerCase().includes('kepala'));
@@ -2788,6 +2826,8 @@ async function hapusSemuaRiwayat() {
             
             renderProfil(); renderTabelGuru(); renderTabelSiswa();
             syncKelasSiswa(); muatPresensiTanggal(); muatDataNilai(); renderBukuMapel();
+            
+            sinkronisasiMemoriChat(); // <--- Mencegah munculnya notifikasi palsu saat refresh
             hitungUnreadPesan();
             
             if(document.getElementById('page-pesan').style.display === 'block') {
@@ -4300,8 +4340,8 @@ async function simpanProfilGuru(e) {
 
         // FITUR BARU: Membuka PopUp Export PDF Presensi
         function bukaModalExportPDF() {
-            // Set otomatis tanggal hari ini pada kolom input
-            const today = new Date().toISOString().split('T')[0];
+            // Set otomatis tanggal hari ini pada kolom input menggunakan waktu lokal
+            const today = getTanggalHariIni();
             document.getElementById('export-tgl-mulai').value = today;
             document.getElementById('export-tgl-akhir').value = today;
             document.getElementById('modalExportPresensi').style.display = 'flex';
