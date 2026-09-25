@@ -4606,12 +4606,12 @@ async function simpanProfilGuru(e) {
             }
 
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'pt', 'a4'); 
-
             let dataCetak = [];
             const siswaKelas = GLOBAL_DATA.siswa.filter(s => s.kelas.replace('Kelas ', '') === fKelas);
 
             if (tipe === 'mapel') {
+                // Kertas Portrait (P) untuk Cetak 1 Mapel
+                const doc = new jsPDF('p', 'pt', 'a4'); 
                 doc.setFontSize(14);
                 doc.text(`Daftar Nilai Akhir (Ranking) - Kelas ${fKelas}`, 40, 40);
                 doc.setFontSize(10);
@@ -4630,7 +4630,7 @@ async function simpanProfilGuru(e) {
                     dataCetak.push({ nisn: s.nisn, nama: s.nama, rata: parseFloat(rata) || 0 });
                 });
 
-                // Urutkan dari Nilai Tertinggi ke Terendah (Ranking)
+                // Urutkan dari Nilai Tertinggi ke Terendah
                 dataCetak.sort((a, b) => b.rata - a.rata);
 
                 const bodyData = dataCetak.map((item, idx) => [idx + 1, item.nisn, item.nama, item.rata]);
@@ -4647,48 +4647,78 @@ async function simpanProfilGuru(e) {
                 showToast('Daftar Ranking Mapel Berhasil Diunduh!', 'success');
 
             } else if (tipe === 'leger') {
+                // Kertas Landscape (L) untuk Cetak Leger Besar (Semua Mapel)
+                const doc = new jsPDF('l', 'pt', 'a4'); 
                 doc.setFontSize(14);
                 doc.text(`Leger Kelas & Peringkat Paralel - Kelas ${fKelas}`, 40, 40);
                 doc.setFontSize(10);
                 doc.text(`Semester: ${smt}`, 40, 60);
 
                 const semuaMapel = ['Pendidikan Agama', 'Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika', 'IPAS', 'PJOK', 'Seni Budaya', 'Bahasa Inggris', 'Kokurikuler', 'Bahasa Madura', 'KKA'];
+                // Singkatan Mapel agar muat di Kertas A4
+                const mapelPendek = ['Agama', 'PPKn', 'B.Ind', 'MTK', 'IPAS', 'PJOK', 'Seni', 'B.Ing', 'Koku', 'Madura', 'KKA'];
 
                 siswaKelas.forEach(s => {
                     let totalNilai = 0;
                     let mapelTerisi = 0;
+                    let skorPermapel = {}; // Kantong untuk menyimpan rata-rata tiap mapel
 
                     semuaMapel.forEach(m => {
                         const keyDB = `${m}_${smt}_${fKelas}`;
                         const dn = GLOBAL_DATA.nilai[keyDB] || {};
+                        let rataMapel = 0;
+                        
                         if (dn[s.nisn]) {
                             let sum = 0, count = 0;
                             dn[s.nisn].scores.forEach(v => { if(v && v.trim() !== '') { sum += parseFloat(v); count++; } });
                             if(count > 0) {
-                                totalNilai += (sum/count);
+                                rataMapel = (sum/count);
+                                totalNilai += rataMapel;
                                 mapelTerisi++;
                             }
                         }
+                        skorPermapel[m] = rataMapel > 0 ? rataMapel.toFixed(1) : '0';
                     });
 
                     let rataKelas = mapelTerisi > 0 ? (totalNilai / mapelTerisi).toFixed(1) : 0;
-                    dataCetak.push({ nisn: s.nisn, nama: s.nama, total: totalNilai.toFixed(1), rata: parseFloat(rataKelas) || 0 });
+                    dataCetak.push({ 
+                        nisn: s.nisn, 
+                        nama: s.nama, 
+                        skor: skorPermapel, // Bawa data tiap mapel
+                        rata: parseFloat(rataKelas) || 0 
+                    });
                 });
 
-                // Urutkan Peringkat Leger
+                // Urutkan Peringkat Leger dari nilai rata-rata keseluruhan terbesar
                 dataCetak.sort((a, b) => b.rata - a.rata);
 
-                const bodyData = dataCetak.map((item, idx) => [idx + 1, item.nisn, item.nama, item.total, item.rata]);
-                doc.autoTable({
-                    head: [['Rank', 'NISN', 'Nama Siswa', 'Total Nilai (Kumulatif)', 'Rata-Rata Nasional']],
-                    body: bodyData,
-                    startY: 80,
-                    styles: { fontSize: 10, halign: 'center' },
-                    columnStyles: { 2: { halign: 'left' } },
-                    headStyles: { fillColor: [25, 135, 84] }
+                // Buat Header Dinamis 
+                let headerBaris = ['Rank', 'NISN', 'Nama Siswa'].concat(mapelPendek).concat(['Rata-Rata Keseluruhan']);
+
+                // Pecah data siswa ke dalam baris-baris tabel
+                const bodyData = dataCetak.map((item, idx) => {
+                    let baris = [idx + 1, item.nisn, item.nama];
+                    semuaMapel.forEach(m => {
+                        baris.push(item.skor[m]);
+                    });
+                    baris.push(item.rata.toFixed(1)); // Nilai Akhir
+                    return baris;
                 });
 
-                doc.save(`Leger_Kelas_${fKelas}_${smt}.pdf`);
+                doc.autoTable({
+                    head: [headerBaris],
+                    body: bodyData,
+                    startY: 80,
+                    styles: { fontSize: 8, halign: 'center', cellPadding: 3, lineWidth: 0.1, lineColor: 200 },
+                    columnStyles: { 
+                        1: { halign: 'left', cellWidth: 55 },
+                        2: { halign: 'left', cellWidth: 100 }
+                    },
+                    headStyles: { fillColor: [25, 135, 84] }, // Warna Hijau Khas Leger
+                    theme: 'grid'
+                });
+
+                doc.save(`Leger_BukuBesar_Kelas_${fKelas}_${smt}.pdf`);
                 showToast('Leger & Peringkat Kelas Berhasil Diunduh!', 'success');
             }
         }
