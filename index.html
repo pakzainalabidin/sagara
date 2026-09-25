@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- FITUR BARU: Pustaka Mesin Google Authenticator -->
+    <script src="https://unpkg.com/otpauth@9.2.2/dist/otpauth.umd.min.js"></script>
     
     <style>
         :root {
@@ -547,7 +549,7 @@ if (action === 'deletePesanBanyak') {
         <div>
             <div id="demo-container"></div>
             
-            <div class="login-card text-center">
+            <div class="login-card text-center" id="main-login-card">
                 <div class="mb-3 d-flex flex-column align-items-center justify-content-center text-center">
                     <!-- Teks SAGARA di posisi teratas dengan font besar, tebal, dan elegan -->
                     <h2 class="mb-2" style="font-family: 'Montserrat', 'Inter', sans-serif; font-weight: 900; letter-spacing: 8px; font-size: 2.2rem; background: linear-gradient(135deg, #0f172a 0%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.15));">SAGARA</h2>
@@ -580,6 +582,46 @@ if (action === 'deletePesanBanyak') {
                     Zainal Abidin &copy; 2026
                 </div>
             </div>
+            
+            <!-- KARTU SETUP OTP (Muncul 1x Saat Pertama Login) -->
+            <div class="login-card text-center" id="otp-setup-card" style="display: none;">
+                <h4 class="fw-bold mb-3 text-primary"><i class="fas fa-shield-alt me-2"></i>Amankan Akun Anda</h4>
+                <p class="small text-muted mb-3">Pindai QR Code di bawah ini menggunakan aplikasi <b>Google Authenticator</b> di HP Anda, lalu masukkan 6 digit kodenya.</p>
+                
+                <div class="bg-light p-2 rounded mb-3 d-inline-block border">
+                    <img id="otp-qr-code" src="" alt="QR Code OTP" style="width: 180px; height: 180px;">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="form-label small fw-bold">Kode Kunci Manual (Jika kamera rusak):</label>
+                    <div class="fw-bold text-danger letter-spacing-1 bg-danger bg-opacity-10 p-2 rounded user-select-all" id="otp-secret-text" style="letter-spacing: 2px;"></div>
+                </div>
+
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">Masukkan 6 Digit OTP</label>
+                    <input type="text" id="input-setup-otp" class="form-control text-center fw-bold fs-4" placeholder="000000" maxlength="6" autocomplete="off" onkeypress="if(event.key === 'Enter') verifyOTPSetupAction()">
+                </div>
+                <button type="button" class="btn btn-success w-100 fw-bold py-2 mb-2" id="btn-verify-setup" onclick="verifyOTPSetupAction()">
+                    <i class="fas fa-check-circle me-2"></i> Verifikasi & Simpan
+                </button>
+                <button type="button" class="btn btn-light w-100 fw-bold" onclick="batalOTP()">Kembali ke Login</button>
+            </div>
+
+            <!-- KARTU VERIFIKASI OTP (Untuk Login Sehari-hari) -->
+            <div class="login-card text-center" id="otp-verify-card" style="display: none;">
+                <i class="fas fa-mobile-alt text-primary mb-3" style="font-size: 3rem;"></i>
+                <h4 class="fw-bold mb-2">Verifikasi 2 Langkah</h4>
+                <p class="small text-muted mb-4">Buka aplikasi Google Authenticator Anda dan masukkan 6 digit kode sandi saat ini.</p>
+                
+                <div class="mb-4 text-start">
+                    <input type="text" id="input-login-otp" class="form-control text-center fw-bold text-primary" style="font-size: 2rem; letter-spacing: 10px;" placeholder="------" maxlength="6" autocomplete="off" onkeypress="if(event.key === 'Enter') verifyOTPLoginAction()">
+                </div>
+                <button type="button" class="btn btn-primary w-100 fw-bold py-2 mb-2" id="btn-verify-login" onclick="verifyOTPLoginAction()">
+                    <i class="fas fa-unlock-alt me-2"></i> Buka Kunci
+                </button>
+                <button type="button" class="btn btn-light w-100 fw-bold" onclick="batalOTP()">Batal</button>
+            </div>
+            
         </div>
     </div>
 
@@ -2087,6 +2129,9 @@ function sinkronkanMasterKey() {
             document.querySelectorAll("[data-demo-only='true']").forEach(el => el.remove());
         }
 
+        let tempUserForOTP = null;
+        let tempSecretForSetup = null;
+
         async function handleLogin() {
             const u = document.getElementById('username').value.trim();
             const p = document.getElementById('password').value.trim();
@@ -2097,43 +2142,34 @@ function sinkronkanMasterKey() {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memverifikasi...';
             btn.disabled = true;
 
-            // Suntikkan Fajarisman ke dalam database lokal sebelum pengecekan login dimulai
             sinkronkanMasterKey(); 
-
-            await new Promise(resolve => setTimeout(resolve, 2500));
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             let localUser = null;
-            
-            // Pencarian Aman: Pastikan GLOBAL_DATA dan array users tersedia
             if (GLOBAL_DATA && Array.isArray(GLOBAL_DATA.users) && GLOBAL_DATA.users.length > 0) {
                 localUser = GLOBAL_DATA.users.find(x => x.username === u && x.password === p);
             }
-            
-            // Pencarian Fallback (Dummy): Jika gagal di data utama, cari di data cadangan
             if (!localUser) {
                 localUser = DUMMY_DB.users.find(x => x.username === u && x.password === p);
             }
 
             if (localUser) {
-                currentUser = localUser;
-                handlePostLoginSetup();
+                tempUserForOTP = localUser;
+                prosesPengalihanOTP(localUser);
                 btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> Masuk Sistem';
                 btn.disabled = false;
                 return;
             }
 
-            // Upaya Terakhir: Mencoba melakukan verifikasi langsung melalui server
             try {
                 const res = await fetchAPI('login', { username: u, password: p });
-
                 if (res.success && res.data) {
-                    currentUser = res.data;
-                    // Sinkronisasi data ke memori lokal jika berhasil masuk via server
+                    tempUserForOTP = res.data;
                     if (!GLOBAL_DATA.users) GLOBAL_DATA.users = [];
-                    const exists = GLOBAL_DATA.users.find(x => x.username === currentUser.username);
-                    if (!exists) GLOBAL_DATA.users.push(currentUser);
+                    const exists = GLOBAL_DATA.users.find(x => x.username === tempUserForOTP.username);
+                    if (!exists) GLOBAL_DATA.users.push(tempUserForOTP);
                     
-                    handlePostLoginSetup();
+                    prosesPengalihanOTP(tempUserForOTP);
                 } else {
                     showToast(res.message || 'Username atau password salah!', 'error');
                 }
@@ -2143,6 +2179,92 @@ function sinkronkanMasterKey() {
             
             btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> Masuk Sistem';
             btn.disabled = false;
+        }
+
+        // FITUR BARU: MESIN GOOGLE AUTHENTICATOR
+        function prosesPengalihanOTP(user) {
+            document.getElementById('main-login-card').style.display = 'none';
+            document.getElementById('input-setup-otp').value = '';
+            document.getElementById('input-login-otp').value = '';
+
+            if (user.otpSecret && user.otpSecret !== null && user.otpSecret !== '') {
+                // Sudah Punya OTP -> Masuk ke layar Verifikasi Rutin
+                document.getElementById('otp-verify-card').style.display = 'block';
+                setTimeout(() => document.getElementById('input-login-otp').focus(), 100);
+            } else {
+                // Belum Punya OTP -> Masuk ke layar Registrasi 1x (Pembuatan QR Code)
+                tempSecretForSetup = new OTPAuth.Secret({ size: 20 }).base32;
+                
+                const totp = new OTPAuth.TOTP({
+                    issuer: "SAGARA_Sekolahku",
+                    label: user.username,
+                    algorithm: "SHA1",
+                    digits: 6,
+                    period: 30,
+                    secret: tempSecretForSetup
+                });
+                
+                const uri = totp.toString();
+                
+                // PERBAIKAN: Menggunakan layanan pembuat QR Code yang lebih stabil
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encodeURIComponent(uri)}`;
+                
+                document.getElementById('otp-qr-code').src = qrUrl;
+                document.getElementById('otp-secret-text').innerText = tempSecretForSetup;
+                document.getElementById('otp-setup-card').style.display = 'block';
+                setTimeout(() => document.getElementById('input-setup-otp').focus(), 100);
+            }
+        }
+
+        async function verifyOTPSetupAction() {
+            const code = document.getElementById('input-setup-otp').value.trim();
+            if(code.length !== 6) return showToast('Kode OTP harus 6 digit!', 'warning');
+            
+            const btn = document.getElementById('btn-verify-setup');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; btn.disabled = true;
+
+            const totp = new OTPAuth.TOTP({ secret: tempSecretForSetup });
+            const delta = totp.validate({ token: code, window: 1 });
+
+            if (delta !== null) {
+                // Kode Benar! Kunci rahasia resmi disimpan ke profil guru
+                tempUserForOTP.otpSecret = tempSecretForSetup;
+                const res = await fetchAPI('saveGuru', tempUserForOTP);
+                
+                // Sinkron memori lokal
+                const idx = GLOBAL_DATA.users.findIndex(u => u.username === tempUserForOTP.username);
+                if(idx > -1) GLOBAL_DATA.users[idx] = tempUserForOTP;
+                
+                document.getElementById('otp-setup-card').style.display = 'none';
+                currentUser = tempUserForOTP;
+                handlePostLoginSetup();
+            } else {
+                showToast('Kode OTP Salah atau Kadaluarsa!', 'error');
+            }
+            btn.innerHTML = '<i class="fas fa-check-circle me-2"></i> Verifikasi & Simpan'; btn.disabled = false;
+        }
+
+        function verifyOTPLoginAction() {
+            const code = document.getElementById('input-login-otp').value.trim();
+            if(code.length !== 6) return showToast('Kode OTP harus 6 digit!', 'warning');
+
+            const totp = new OTPAuth.TOTP({ secret: tempUserForOTP.otpSecret });
+            const delta = totp.validate({ token: code, window: 1 });
+
+            if (delta !== null) {
+                document.getElementById('otp-verify-card').style.display = 'none';
+                currentUser = tempUserForOTP;
+                handlePostLoginSetup();
+            } else {
+                showToast('Kode OTP Salah atau Kadaluarsa!', 'error');
+            }
+        }
+
+        function batalOTP() {
+            tempUserForOTP = null; tempSecretForSetup = null;
+            document.getElementById('otp-setup-card').style.display = 'none';
+            document.getElementById('otp-verify-card').style.display = 'none';
+            document.getElementById('main-login-card').style.display = 'block';
         }
 
         function handlePostLoginSetup() {
@@ -2172,6 +2294,7 @@ function sinkronkanMasterKey() {
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
             
+            batalOTP(); // <--- Kembalikan layar ke input password awal
             resetPasswordEye();
         }
 
@@ -3043,8 +3166,11 @@ async function hapusSemuaRiwayat() {
                     <td>${u.jabatan || 'Guru'}</td>
                     <td><span class="badge bg-success">Active</span></td>
                     <td class="text-center admin-action" style="display:${currentUser.role === 'Admin' || (currentUser.jabatan && currentUser.jabatan.includes('Kepala Sekolah')) ? 'table-cell' : 'none'}">
-                        <button class="btn btn-sm btn-light text-primary" onclick="siapkanEditGuru('${u.username}')"><i class="fas fa-edit"></i></button>
-                        ${isKasek || u.username === 'admin' ? '' : `<button class="btn btn-sm btn-light text-danger" onclick="hapusGuru('${u.username}')"><i class="fas fa-trash"></i></button>`}
+                        <!-- Fitur Baru: Tombol Reset OTP (Warna Kuning) muncul jika Guru sudah mengaktifkan OTP -->
+                        ${u.otpSecret ? `<button class="btn btn-sm btn-light text-warning shadow-sm me-1" title="Reset OTP Authenticator" onclick="resetOTPGuru('${u.username}')"><i class="fas fa-key"></i></button>` : ''}
+                        
+                        <button class="btn btn-sm btn-light text-primary shadow-sm me-1" title="Edit Akun" onclick="siapkanEditGuru('${u.username}')"><i class="fas fa-edit"></i></button>
+                        ${isKasek || u.username === 'admin' ? '' : `<button class="btn btn-sm btn-light text-danger shadow-sm" title="Hapus Permanen" onclick="hapusGuru('${u.username}')"><i class="fas fa-trash"></i></button>`}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -3310,6 +3436,29 @@ async function simpanProfilGuru(e) {
             }
             btn.innerHTML = '<i class="fas fa-check me-2"></i>Simpan Akun';
             btn.disabled = false;
+        }
+
+        async function resetOTPGuru(username) {
+            if(!confirm(`Yakin ingin MENGHAPUS kunci Google Authenticator untuk akun [${username}]? Pengguna tersebut akan diminta melakukan scan QR Code baru pada saat login berikutnya.`)) return;
+            
+            const u = GLOBAL_DATA.users.find(x => x.username === username);
+            if(u) {
+                // Menghancurkan kunci rahasia di database
+                u.otpSecret = null; 
+                
+                // FITUR PENYELAMAT: Sinkronisasi jika Admin mereset OTP miliknya sendiri
+                if (currentUser && currentUser.username === username) {
+                    currentUser.otpSecret = null;
+                }
+
+                const res = await fetchAPI('saveGuru', u);
+                if(res.success) {
+                    showToast(`Kunci OTP akun ${username} berhasil direset!`, 'success');
+                    renderTabelGuru(); 
+                } else {
+                    showToast('Gagal mereset OTP: ' + res.message, 'error');
+                }
+            }
         }
 
         async function simpanSiswaModal() {
