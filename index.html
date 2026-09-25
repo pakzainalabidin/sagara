@@ -4616,7 +4616,6 @@ async function simpanProfilGuru(e) {
                 doc.setFontSize(10);
                 doc.text(`Mapel: ${mapelUtama} | Semester: ${smt}`, 40, 60);
 
-                // LOGIKA PENYELAMAT DATA LAMA (Untuk Cetak Mapel)
                 const keyBaru = `${mapelUtama}_${smt}_${fKelas}`;
                 const keyLama = `${mapelUtama}_${fKelas}`;
                 let dn = GLOBAL_DATA.nilai[keyBaru];
@@ -4628,9 +4627,10 @@ async function simpanProfilGuru(e) {
                     if (dn[s.nisn]) {
                         let sum = 0, count = 0;
                         dn[s.nisn].scores.forEach(v => { if(v && v.trim() !== '') { sum += parseFloat(v); count++; } });
-                        if(count > 0) rata = (sum/count).toFixed(1);
+                        // PEMBULATAN ANGKA UTUH
+                        if(count > 0) rata = Math.round(sum/count);
                     }
-                    dataCetak.push({ nisn: s.nisn, nama: s.nama, rata: parseFloat(rata) || 0 });
+                    dataCetak.push({ nisn: s.nisn, nama: s.nama, rata: parseInt(rata) || 0 });
                 });
 
                 dataCetak.sort((a, b) => b.rata - a.rata);
@@ -4664,7 +4664,6 @@ async function simpanProfilGuru(e) {
                     let skorPermapel = {}; 
 
                     semuaMapel.forEach(m => {
-                        // LOGIKA PENYELAMAT DATA LAMA (Untuk Cetak Leger Besar)
                         const keyBaru = `${m}_${smt}_${fKelas}`;
                         const keyLama = `${m}_${fKelas}`;
                         let dn = GLOBAL_DATA.nilai[keyBaru];
@@ -4676,20 +4675,22 @@ async function simpanProfilGuru(e) {
                             let sum = 0, count = 0;
                             dn[s.nisn].scores.forEach(v => { if(v && v.trim() !== '') { sum += parseFloat(v); count++; } });
                             if(count > 0) {
-                                rataMapel = (sum/count);
+                                // PEMBULATAN ANGKA UTUH SEJAK DARI MAPEL
+                                rataMapel = Math.round(sum/count);
                                 totalNilai += rataMapel;
                                 mapelTerisi++;
                             }
                         }
-                        skorPermapel[m] = rataMapel > 0 ? rataMapel.toFixed(1) : '0';
+                        skorPermapel[m] = rataMapel > 0 ? rataMapel.toString() : '0';
                     });
 
-                    let rataKelas = mapelTerisi > 0 ? (totalNilai / mapelTerisi).toFixed(1) : 0;
+                    // PEMBULATAN ANGKA UTUH UNTUK RATA-RATA AKHIR KESELURUHAN
+                    let rataKelas = mapelTerisi > 0 ? Math.round(totalNilai / mapelTerisi) : 0;
                     dataCetak.push({ 
                         nisn: s.nisn, 
                         nama: s.nama, 
                         skor: skorPermapel,
-                        rata: parseFloat(rataKelas) || 0 
+                        rata: parseInt(rataKelas) || 0 
                     });
                 });
 
@@ -4702,7 +4703,8 @@ async function simpanProfilGuru(e) {
                     semuaMapel.forEach(m => {
                         baris.push(item.skor[m]);
                     });
-                    baris.push(item.rata.toFixed(1)); 
+                    // PASTIKAN TIDAK ADA DESIMAL YANG TERSISA
+                    baris.push(item.rata); 
                     return baris;
                 });
 
