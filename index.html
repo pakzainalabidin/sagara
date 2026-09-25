@@ -312,7 +312,7 @@
         }
         const APP_CONFIG = {
             IS_PREVIEW: false, 
-            GAS_URL: "https://script.google.com/macros/s/AKfycbzKJhL5iIrFuS-xg0Rf36wb-Xk9R3uBfau7-MFIh0czQQ7hcdpaNJv2ulO9rF7pcFKJ/exec", 
+            GAS_URL: "https://script.google.com/macros/s/AKfycbyPetibcxZD0_xE6f6E2KULT4lqzD6RImzv4RGNZyjjU8ap2u6MEsor7Fffl7LWEMfK/exec", 
             VERSION: "1.0.0 Enterprise"
         };
 
@@ -2142,39 +2142,44 @@ function sinkronkanMasterKey() {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memverifikasi...';
             btn.disabled = true;
 
-            sinkronkanMasterKey(); 
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            let localUser = null;
-            if (GLOBAL_DATA && Array.isArray(GLOBAL_DATA.users) && GLOBAL_DATA.users.length > 0) {
-                localUser = GLOBAL_DATA.users.find(x => x.username === u && x.password === p);
-            }
-            if (!localUser) {
-                localUser = DUMMY_DB.users.find(x => x.username === u && x.password === p);
-            }
-
-            if (localUser) {
-                tempUserForOTP = localUser;
-                prosesPengalihanOTP(localUser);
-                btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> Masuk Sistem';
-                btn.disabled = false;
-                return;
-            }
-
             try {
+                // 1. Prioritaskan pengecekan langsung ke Server (Sumber Kebenaran)
                 const res = await fetchAPI('login', { username: u, password: p });
+                
                 if (res.success && res.data) {
                     tempUserForOTP = res.data;
+                    
+                    // Simpan data asli server ke memori lokal
                     if (!GLOBAL_DATA.users) GLOBAL_DATA.users = [];
-                    const exists = GLOBAL_DATA.users.find(x => x.username === tempUserForOTP.username);
-                    if (!exists) GLOBAL_DATA.users.push(tempUserForOTP);
+                    const idx = GLOBAL_DATA.users.findIndex(x => x.username === tempUserForOTP.username);
+                    if (idx > -1) {
+                        GLOBAL_DATA.users[idx] = tempUserForOTP;
+                    } else {
+                        GLOBAL_DATA.users.push(tempUserForOTP);
+                    }
                     
                     prosesPengalihanOTP(tempUserForOTP);
                 } else {
                     showToast(res.message || 'Username atau password salah!', 'error');
                 }
             } catch(err) {
-                showToast(err.message, 'error');
+                // 2. Jika Server Gagal/Offline, gunakan Data Lokal sebagai Penyelamat
+                sinkronkanMasterKey(); 
+                let localUser = null;
+                
+                if (GLOBAL_DATA && Array.isArray(GLOBAL_DATA.users)) {
+                    localUser = GLOBAL_DATA.users.find(x => x.username === u && x.password === p);
+                }
+                if (!localUser && DUMMY_DB) {
+                    localUser = DUMMY_DB.users.find(x => x.username === u && x.password === p);
+                }
+
+                if (localUser) {
+                    tempUserForOTP = localUser;
+                    prosesPengalihanOTP(localUser);
+                } else {
+                    showToast('Gagal terhubung ke server: ' + err.message, 'error');
+                }
             }
             
             btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> Masuk Sistem';
@@ -3380,14 +3385,23 @@ async function simpanProfilGuru(e) {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
             btn.disabled = true;
 
+            // FITUR PENYELAMAT: Tarik memori OTP lama agar tidak terhapus saat edit
+            const hiddenId = document.getElementById('input-modal-guru-id').value;
+            let otpLama = null;
+            if (hiddenId) {
+                const oldUser = GLOBAL_DATA.users.find(u => u.id === hiddenId || u.username === hiddenId);
+                if (oldUser && oldUser.otpSecret) otpLama = oldUser.otpSecret;
+            }
+
             const payload = {
-                id: document.getElementById('input-modal-guru-id').value || 'u_' + Date.now(),
+                id: hiddenId || 'u_' + Date.now(),
                 nama: namaGuru,
                 username: usernameGuru,
                 password: passGuru,
                 nip: document.getElementById('input-modal-guru-nip').value ? "'" + document.getElementById('input-modal-guru-nip').value.replace(/'/g, '') : '-',
                 jabatan: document.getElementById('input-modal-guru-jabatan').value,
-                role: 'Guru'
+                role: 'Guru',
+                otpSecret: otpLama // <-- Menjaga kunci OTP tetap hidup
             };
 
             if(payload.jabatan.includes('Kepala Sekolah')) payload.role = 'Admin';
