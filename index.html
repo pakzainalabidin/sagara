@@ -439,6 +439,44 @@ function sinkronisasiMemoriChat() {
             }
         }, 1500); // Menyimpan diam-diam setiap 1.5 detik
 
+        // FITUR BARU: SINKRONISASI PESAN OTOMATIS (BACKGROUND POLLING)
+        // Mengecek pesan baru ke server setiap 15 detik secara diam-diam
+        setInterval(async () => {
+            // Hanya berjalan jika user sudah login dan dasbor terbuka
+            if (currentUser && document.getElementById('app-layout').style.display === 'flex') {
+                // Hanya mengecek jika terhubung ke server produksi (bukan mode dummy)
+                if (APP_MODE.isProduction && !isGasUrlPlaceholder()) {
+                    try {
+                        // Memanggil data dari server secara senyap (tanpa indikator loading)
+                        const res = await fetchAPI('getInitialData');
+                        
+                        if (res.success && res.data && res.data.pesan) {
+                            const dataServer = res.data;
+                            const jumlahPesanLokal = GLOBAL_DATA.pesan ? GLOBAL_DATA.pesan.length : 0;
+                            const jumlahPesanServer = dataServer.pesan.length;
+                            
+                            // Jika ada pesan baru yang masuk di server
+                            if (jumlahPesanServer > jumlahPesanLokal) {
+                                // 1. Perbarui memori pesan di aplikasi
+                                GLOBAL_DATA.pesan = dataServer.pesan;
+                                
+                                // 2. Trigger lonceng notifikasi agar bergetar dan angkanya bertambah
+                                hitungUnreadPesan();
+                                
+                                // 3. Jika guru sedang membuka menu "Pusat Pesan", langsung munculkan pesannya
+                                if (document.getElementById('page-pesan').style.display === 'block') {
+                                    muatIsiChat();
+                                    renderChatContacts();
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        // Abaikan error (fail-silent) agar tidak mengganggu UI jika koneksi berkedip
+                    }
+                }
+            }
+        }, 15000); // 15000 milidetik = 15 detik. Anda bisa mengubahnya menjadi 10000 (10 detik) jika ingin lebih cepat.
+
         function muatMemoriLokal() {
             const memori = localStorage.getItem('SAGARA_LOCAL_DB');
             if (memori) {
