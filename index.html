@@ -3150,6 +3150,11 @@ async function hapusSemuaRiwayat() {
             
             sinkronisasiMemoriChat(); 
             hitungUnreadPesan();
+
+            if(typeof renderProta === 'function') renderProta();
+            if(typeof renderProsem === 'function') renderProsem();
+            if(typeof renderJurnal === 'function') renderJurnal();
+            if(typeof renderTabelCP === 'function') renderTabelCP()
             
             if(document.getElementById('page-pesan').style.display === 'block') {
                 muatIsiChat();
