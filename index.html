@@ -317,7 +317,7 @@
 }
         const APP_CONFIG = {
             IS_PREVIEW: false, 
-            GAS_URL: "https://script.google.com/macros/s/AKfycbwiSCpv-kRAnNBWAP1z2TKWXgzW7akXaA1dkWzatApL1Ag1zHssw2KoG_tMdT5nxPkE/exec", 
+            GAS_URL: "https://script.google.com/macros/s/AKfycbwTP0wYecUdN9IokJ1yMo37S5D0aKeTibwV146nxKRle8W5KkfbhpNYswzTD_FQimnj/exec", 
             VERSION: "1.0.0 Enterprise"
         };
 
@@ -426,7 +426,7 @@ function sinkronisasiMemoriChat() {
             jadwal: {}
         };
 
-        let GLOBAL_DATA = { users: [], profilSekolah: {}, siswa: [], presensi: {}, nilai: {}, pesan: [], buku: {}, jadwal: {} };
+        let GLOBAL_DATA = { users: [], profilSekolah: {}, siswa: [], presensi: {}, nilai: {}, pesan: [], buku: {}, jadwal: {}, prota: [], jurnal: [], cp: {} };
         let currentUser = null;
         let isKaldikUploaded = false; 
         let activeChatUser = 'all'; 
@@ -2075,6 +2075,9 @@ if (action === 'deletePesanBanyak') {
                     normalizeDataServer();
                     if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                     if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
+                    if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
+                    if(!GLOBAL_DATA.jurnal) GLOBAL_DATA.jurnal = [];
+                    if(!GLOBAL_DATA.cp) GLOBAL_DATA.cp = {};
                     isDataPrefetched = true;
                     
                     if(GLOBAL_DATA.profilSekolah) {
@@ -2125,6 +2128,9 @@ function sinkronkanMasterKey() {
                         normalizeDataServer();
                         if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                         if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
+                        if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
+                        if(!GLOBAL_DATA.jurnal) GLOBAL_DATA.jurnal = [];
+                        if(!GLOBAL_DATA.cp) GLOBAL_DATA.cp = {};
                     }
                 }).catch(err => {
                     isDataPrefetched = false; 
@@ -2377,6 +2383,9 @@ function sinkronkanMasterKey() {
                 normalizeDataServer();
                 if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
                 if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
+                if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
+                if(!GLOBAL_DATA.jurnal) GLOBAL_DATA.jurnal = [];
+                if(!GLOBAL_DATA.cp) GLOBAL_DATA.cp = {};
                 document.getElementById('main-loading').style.display = 'none';
             }
             
@@ -3132,6 +3141,9 @@ async function hapusSemuaRiwayat() {
 
             if(!GLOBAL_DATA.pesan) GLOBAL_DATA.pesan = [];
             if(!GLOBAL_DATA.buku) GLOBAL_DATA.buku = {};
+            if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
+            if(!GLOBAL_DATA.jurnal) GLOBAL_DATA.jurnal = [];
+            if(!GLOBAL_DATA.cp) GLOBAL_DATA.cp = {};
             
             renderProfil(); renderTabelGuru(); renderTabelSiswa();
             syncKelasSiswa(); muatPresensiTanggal(); muatDataNilai(); renderBukuMapel();
