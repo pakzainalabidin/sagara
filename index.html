@@ -662,7 +662,7 @@ if (action === 'deletePesanBanyak') {
                 <div class="mb-4 text-start">
                     <input type="text" id="input-login-otp" class="form-control text-center fw-bold text-primary" style="font-size: 2rem; letter-spacing: 10px;" placeholder="------" maxlength="6" autocomplete="off" onkeypress="if(event.key === 'Enter') verifyOTPLoginAction()">
                 </div>
-                <button type="button" class="btn btn-primary w-100 fw-bold py-2 mb-2" id="btn-verify-login" onclick="verifyOTPLoginAction()">
+               <button type="button" class="btn btn-primary w-100 fw-bold py-2 mb-2" id="btn-verify-login" onclick="verifyOTPLoginAction()">
                     <i class="fas fa-check-circle me-2"></i> Verifikasi
                 </button>
                 <button type="button" class="btn btn-light w-100 fw-bold" onclick="batalOTP()">Batal</button>
@@ -4613,55 +4613,96 @@ async function simpanProfilGuru(e) {
                 return;
             }
 
-            const today = getTanggalHariIni();
-            const presensiToday = GLOBAL_DATA.presensi[today] || {};
             let totalProgressNasional = 0;
-
-            // Penampung data untuk grafik Admin
             let sumProfil = 0, sumSiswa = 0, sumPresensi = 0, sumNilai = 0, sumProta = 0;
             let chartLabelsGuru = [];
             let chartDataGuru = [];
 
             gurus.forEach(u => {
-                let profilVal = (u.nip && u.nip !== '-') ? 100 : 50;
+                // 1. PROFIL & KELAS (Cek NIP dan Jabatan)
+                let profilVal = (u.nip && u.nip !== '-' && u.jabatan) ? 100 : 50;
                 
                 let kBase = 'Semua';
+                let isGuruKelas = false;
+                let mapelKhusus = '';
+
                 if (u.jabatan && u.jabatan.includes('Kelas')) {
+                    isGuruKelas = true;
                     const match = u.jabatan.match(/\d/);
                     if (match) kBase = match[0];
+                } else if (u.jabatan && u.jabatan.includes('PJOK')) {
+                    mapelKhusus = 'PJOK';
+                } else if (u.jabatan && u.jabatan.includes('PAI')) {
+                    mapelKhusus = 'Pendidikan Agama';
+                } else if (u.jabatan && u.jabatan.includes('Inggris')) {
+                    mapelKhusus = 'Bahasa Inggris';
+                } else if (u.jabatan && u.jabatan.includes('Madura')) {
+                    mapelKhusus = 'Bahasa Madura';
                 }
 
-                let siswaCount = 0;
-                (GLOBAL_DATA.siswa || []).forEach(s => {
-                    if (kBase === 'Semua' || s.kelas.includes(kBase)) siswaCount++;
-                });
-                let siswaVal = siswaCount > 0 ? 100 : 0;
-
-                let presensiVal = 0;
+                // 2. DATA SISWA (Cek Siswa Spesifik di Kelasnya)
                 let siswaDiKelas = (GLOBAL_DATA.siswa || []).filter(s => kBase === 'Semua' || s.kelas.includes(kBase));
-                let sudahAbsen = 0;
-                siswaDiKelas.forEach(s => { if (presensiToday[s.nisn]) sudahAbsen++; });
-                if (siswaDiKelas.length > 0) presensiVal = Math.round((sudahAbsen / siswaDiKelas.length) * 100);
+                let siswaVal = siswaDiKelas.length > 0 ? 100 : 0;
 
+                // 3. PRESENSI (Cek Semua Histori Absen Sebelumnya, bukan cuma hari ini)
+                let presensiVal = 0;
+                if (siswaDiKelas.length > 0) {
+                    let siswaPernahAbsen = 0;
+                    siswaDiKelas.forEach(s => {
+                        let adaAbsen = false;
+                        for (let tgl in GLOBAL_DATA.presensi) {
+                            if (GLOBAL_DATA.presensi[tgl][s.nisn]) {
+                                adaAbsen = true;
+                                break;
+                            }
+                        }
+                        if (adaAbsen) siswaPernahAbsen++;
+                    });
+                    // Dapatkan persentase siswa yang minimal pernah diabsen 1 kali
+                    presensiVal = Math.round((siswaPernahAbsen / siswaDiKelas.length) * 100);
+                }
+
+                // 4. PENILAIAN (Cek Spesifik berdasarkan Jabatan Guru)
                 let nilaiVal = 0;
-                let mapelKey = u.jabatan.includes('PJOK') ? 'PJOK' : u.jabatan.includes('PAI') ? 'Pendidikan Agama' : '';
-                let kunciCari = mapelKey ? `${mapelKey}_${kBase}` : `_${kBase}`;
-                let hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari));
-                if (hasNilai) nilaiVal = 100;
+                let adaNilai = false;
+                let keysNilai = Object.keys(GLOBAL_DATA.nilai || {});
+                
+                if (isGuruKelas && kBase !== 'Semua') {
+                    // Guru Kelas mengecek nilai mapel umum (Abaikan PJOK & Agama)
+                    adaNilai = keysNilai.some(k => k.endsWith(`_${kBase}`) && !k.includes('PJOK') && !k.includes('Agama'));
+                } else if (mapelKhusus !== '') {
+                    // Guru Mapel mengecek nilai mata pelajarannya saja
+                    adaNilai = keysNilai.some(k => k.startsWith(mapelKhusus));
+                } else {
+                    adaNilai = keysNilai.length > 0;
+                }
+                if (adaNilai) nilaiVal = 100;
 
-                let jurnalVal = (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) ? 100 : 0;
+                // 5. PERANGKAT AJAR / PROTA (Cek Spesifik berdasarkan Jabatan)
+                let jurnalVal = 0;
+                let adaProta = false;
+                if (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) {
+                    if (mapelKhusus !== '') {
+                        // Guru Mapel mencari Prota miliknya
+                        adaProta = GLOBAL_DATA.prota.some(p => p.mapel === mapelKhusus);
+                    } else if (isGuruKelas) {
+                        // Guru Kelas mencari Prota mapel umum
+                        let mapelUmum = ['Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika', 'IPAS', 'Seni Budaya', 'Kokurikuler'];
+                        adaProta = GLOBAL_DATA.prota.some(p => mapelUmum.includes(p.mapel));
+                    } else {
+                        adaProta = true; 
+                    }
+                }
+                if (adaProta) jurnalVal = 100;
 
+                // Hitung Rata-Rata Final
                 let rataRata = Math.round((profilVal + siswaVal + presensiVal + nilaiVal + jurnalVal) / 5);
                 totalProgressNasional += rataRata;
 
-                // Tambahkan data guru ini ke kalkulasi Grafik
-                sumProfil += profilVal;
-                sumSiswa += siswaVal;
-                sumPresensi += presensiVal;
-                sumNilai += nilaiVal;
-                sumProta += jurnalVal;
-                chartLabelsGuru.push(u.nama);
-                chartDataGuru.push(rataRata);
+                // Kalkulasi untuk Grafik Admin
+                sumProfil += profilVal; sumSiswa += siswaVal; sumPresensi += presensiVal;
+                sumNilai += nilaiVal; sumProta += jurnalVal;
+                chartLabelsGuru.push(u.nama); chartDataGuru.push(rataRata);
 
                 html += `
                     <div class="col-md-6 mb-4">
@@ -4679,7 +4720,8 @@ async function simpanProfilGuru(e) {
                                 <div class="progress" style="height: 5px;"><div class="progress-bar bg-info" style="width: ${siswaVal}%"></div></div>
                             </div>
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Presensi Hari Ini</span> <span>${presensiVal}%</span></div>
+                                <!-- Teks diubah untuk mencerminkan riwayat keseluruhan -->
+                                <div class="d-flex justify-content-between small text-muted mb-1"><span>Rekap Presensi</span> <span>${presensiVal}%</span></div>
                                 <div class="progress" style="height: 5px;"><div class="progress-bar bg-success" style="width: ${presensiVal}%"></div></div>
                             </div>
                             <div class="mb-2">
@@ -4704,14 +4746,11 @@ async function simpanProfilGuru(e) {
                 if(h3) h3.innerText = avgNasional + '%';
             }
 
-            // PERBAIKAN: Nyalakan Grafik Admin secara Real-Time
+            // Update Grafik Admin
             if (adminChartInstance && totalG > 0) {
                 adminChartInstance.data.datasets[0].data = [
-                    Math.round(sumProfil / totalG),
-                    Math.round(sumSiswa / totalG),
-                    Math.round(sumPresensi / totalG),
-                    Math.round(sumNilai / totalG),
-                    Math.round(sumProta / totalG)
+                    Math.round(sumProfil / totalG), Math.round(sumSiswa / totalG),
+                    Math.round(sumPresensi / totalG), Math.round(sumNilai / totalG), Math.round(sumProta / totalG)
                 ];
                 adminChartInstance.update();
             }
@@ -4721,7 +4760,6 @@ async function simpanProfilGuru(e) {
                 adminPencapaianChartInstance.update();
             }
         }
-
         // FITUR BARU: Membuka PopUp Export PDF Presensi
         function bukaModalExportPDF() {
             // Set otomatis tanggal hari ini pada kolom input menggunakan waktu lokal
@@ -5108,36 +5146,75 @@ async function simpanProfilGuru(e) {
             
             const tbData = [];
             const gurus = (GLOBAL_DATA.users || []).filter(u => u.role !== 'Admin');
-            const today = getTanggalHariIni();
-            const presensiToday = GLOBAL_DATA.presensi[today] || {};
             
-            // Kalkulasi Kinerja Persis Seperti di Dashboard Admin
+            // Kalkulasi Kinerja Persis Seperti di Dasbor Layar
             gurus.forEach(u => {
-                let profilVal = (u.nip && u.nip !== '-') ? 100 : 50;
+                let profilVal = (u.nip && u.nip !== '-' && u.jabatan) ? 100 : 50;
                 
                 let kBase = 'Semua';
+                let isGuruKelas = false;
+                let mapelKhusus = '';
+
                 if (u.jabatan && u.jabatan.includes('Kelas')) {
+                    isGuruKelas = true;
                     const match = u.jabatan.match(/\d/);
                     if (match) kBase = match[0];
+                } else if (u.jabatan && u.jabatan.includes('PJOK')) {
+                    mapelKhusus = 'PJOK';
+                } else if (u.jabatan && u.jabatan.includes('PAI')) {
+                    mapelKhusus = 'Pendidikan Agama';
+                } else if (u.jabatan && u.jabatan.includes('Inggris')) {
+                    mapelKhusus = 'Bahasa Inggris';
+                } else if (u.jabatan && u.jabatan.includes('Madura')) {
+                    mapelKhusus = 'Bahasa Madura';
                 }
 
-                let siswaCount = 0, sudahAbsen = 0;
-                (GLOBAL_DATA.siswa || []).forEach(s => {
-                    if (kBase === 'Semua' || s.kelas.includes(kBase)) {
-                        siswaCount++;
-                        if (presensiToday[s.nisn]) sudahAbsen++;
-                    }
-                });
-                let siswaVal = siswaCount > 0 ? 100 : 0;
-                let presensiVal = siswaCount > 0 ? Math.round((sudahAbsen / siswaCount) * 100) : 0;
+                let siswaDiKelas = (GLOBAL_DATA.siswa || []).filter(s => kBase === 'Semua' || s.kelas.includes(kBase));
+                let siswaVal = siswaDiKelas.length > 0 ? 100 : 0;
+
+                let presensiVal = 0;
+                if (siswaDiKelas.length > 0) {
+                    let siswaPernahAbsen = 0;
+                    siswaDiKelas.forEach(s => {
+                        let adaAbsen = false;
+                        for (let tgl in GLOBAL_DATA.presensi) {
+                            if (GLOBAL_DATA.presensi[tgl][s.nisn]) {
+                                adaAbsen = true;
+                                break;
+                            }
+                        }
+                        if (adaAbsen) siswaPernahAbsen++;
+                    });
+                    presensiVal = Math.round((siswaPernahAbsen / siswaDiKelas.length) * 100);
+                }
 
                 let nilaiVal = 0;
-                let mapelKey = u.jabatan.includes('PJOK') ? 'PJOK' : u.jabatan.includes('PAI') ? 'Pendidikan Agama' : '';
-                let kunciCari = mapelKey ? `${mapelKey}_` : `_`; 
-                let hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari) && (kBase === 'Semua' || k.includes(`_${kBase}`)));
-                if (hasNilai) nilaiVal = 100;
+                let adaNilai = false;
+                let keysNilai = Object.keys(GLOBAL_DATA.nilai || {});
+                
+                if (isGuruKelas && kBase !== 'Semua') {
+                    adaNilai = keysNilai.some(k => k.endsWith(`_${kBase}`) && !k.includes('PJOK') && !k.includes('Agama'));
+                } else if (mapelKhusus !== '') {
+                    adaNilai = keysNilai.some(k => k.startsWith(mapelKhusus));
+                } else {
+                    adaNilai = keysNilai.length > 0;
+                }
+                if (adaNilai) nilaiVal = 100;
 
-                let jurnalVal = (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) ? 100 : 0;
+                let jurnalVal = 0;
+                let adaProta = false;
+                if (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) {
+                    if (mapelKhusus !== '') {
+                        adaProta = GLOBAL_DATA.prota.some(p => p.mapel === mapelKhusus);
+                    } else if (isGuruKelas) {
+                        let mapelUmum = ['Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika', 'IPAS', 'Seni Budaya', 'Kokurikuler'];
+                        adaProta = GLOBAL_DATA.prota.some(p => mapelUmum.includes(p.mapel));
+                    } else {
+                        adaProta = true; 
+                    }
+                }
+                if (adaProta) jurnalVal = 100;
+
                 let rataRata = Math.round((profilVal + siswaVal + presensiVal + nilaiVal + jurnalVal) / 5);
 
                 tbData.push([ 
@@ -5236,7 +5313,12 @@ async function simpanProfilGuru(e) {
             return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
-        function simpanProtaModal() {
+        async function simpanProtaModal() {
+            const btn = document.querySelector('#modalTambahProta .btn-danger');
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
+            btn.disabled = true;
+
             const smt = document.getElementById('input-modal-prota-semester').value;
             const mapel = document.getElementById('input-modal-prota-mapel').value;
             const tglVal = document.getElementById('input-modal-prota-tgl').value;
@@ -5249,7 +5331,10 @@ async function simpanProfilGuru(e) {
             const jp = document.getElementById('input-modal-prota-jp').value || '-'; 
 
             if(!tglVal || !tp || !bab) {
-                showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); return;
+                showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); 
+                btn.innerHTML = origHTML;
+                btn.disabled = false;
+                return;
             }
 
             if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
@@ -5258,13 +5343,27 @@ async function simpanProfilGuru(e) {
                 smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
             });
 
-            renderProta(); renderProsem(); tutupModalProta();
-            // --- Tambahkan Baris Ini ---
-            if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
-            if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+            // LOGIKA BARU: Kirim data langsung ke Server (Database Google Sheets)
+            const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
             
-            showToast('Tersimpan di Prota! Jangan lupa klik tombol Sinkron.', 'success');
-        } // <--- TAMBAHKAN KURUNG KURAWAL INI
+            if (res.success) {
+                renderProta(); 
+                renderProsem(); 
+                tutupModalProta();
+                
+                if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+                if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+                
+                showToast('Prota Berhasil Disimpan & Tersinkron Permanen!', 'success');
+            } else {
+                // Jika server menolak, hapus data terakhir yang masuk ke memori
+                GLOBAL_DATA.prota.pop();
+                showToast('Gagal menyimpan ke server: ' + res.message, 'error');
+            }
+            
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        }
 
         function sinkronProtaManual() {
             renderProsem();
@@ -5303,6 +5402,51 @@ async function simpanProfilGuru(e) {
                 tbody.appendChild(tr);
             });
             if(count === 0) tbody.innerHTML = '<tr><td colspan="11" class="text-muted py-4">Belum ada data Program Tahunan untuk Mapel ini.</td></tr>';
+        }
+
+        // --- INI ADALAH FUNGSI BARU UNTUK MENGHAPUS SEMUA DATA SESUAI FILTER ---
+        async function hapusSemuaProta() {
+            if (!GLOBAL_DATA.prota || GLOBAL_DATA.prota.length === 0) {
+                showToast('Tidak ada data untuk dihapus!', 'warning');
+                return;
+            }
+
+            const filterEl = document.getElementById('filter-mapel-prota');
+            const selectedMapel = filterEl ? filterEl.value : 'Semua';
+            
+            let pesanKonfirmasi = "";
+            if (selectedMapel === 'Semua') {
+                pesanKonfirmasi = "PERINGATAN: Anda yakin ingin menghapus SELURUH data Prota dan Prosem untuk SEMUA Mata Pelajaran di server?";
+            } else {
+                pesanKonfirmasi = `Yakin ingin menghapus semua data Prota dan Prosem KHUSUS untuk Mapel: ${selectedMapel}?`;
+            }
+
+            if(!confirm(pesanKonfirmasi)) return;
+
+            const backupProta = [...GLOBAL_DATA.prota];
+
+            if (selectedMapel === 'Semua') {
+                GLOBAL_DATA.prota = []; 
+            } else {
+                GLOBAL_DATA.prota = GLOBAL_DATA.prota.filter(p => (p.mapel || '-') !== selectedMapel);
+            }
+
+            renderProta(); 
+            renderProsem();
+            
+            showToast('Sedang menghapus data dari server...', 'info');
+            
+            // LOGIKA BARU: Timpa database di server dengan array yang sudah dibersihkan
+            const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
+            
+            if (res.success) {
+                showToast(`Data ${selectedMapel} berhasil dibersihkan permanen!`, 'success');
+            } else {
+                GLOBAL_DATA.prota = backupProta;
+                renderProta(); 
+                renderProsem();
+                showToast('Gagal menghapus di server: ' + res.message, 'error');
+            }
         }
 
         function renderProsem() {
@@ -5986,41 +6130,25 @@ Materi Pembelajaran: ${mat}`;
             if(count === 0) tbody.innerHTML = '<tr><td colspan="11" class="text-muted py-4">Belum ada data Program Tahunan.</td></tr>';
         }
 
-        function hapusProta(id) {
-            if(!confirm('Hapus data ini dari Prota dan Prosem?')) return;
-            GLOBAL_DATA.prota = GLOBAL_DATA.prota.filter(p => p.id !== id);
-            renderProta(); renderProsem();
-        }
-
-        // --- INI ADALAH FUNGSI BARU UNTUK MENGHAPUS SEMUA DATA SESUAI FILTER ---
-        function hapusSemuaProta() {
-            if (!GLOBAL_DATA.prota || GLOBAL_DATA.prota.length === 0) {
-                showToast('Tidak ada data untuk dihapus!', 'warning');
-                return;
-            }
-
-            const filterEl = document.getElementById('filter-mapel-prota');
-            const selectedMapel = filterEl ? filterEl.value : 'Semua';
+        async function hapusProta(id) {
+            if(!confirm('Hapus data ini dari Prota dan Prosem secara permanen?')) return;
             
-            let pesanKonfirmasi = "";
-            if (selectedMapel === 'Semua') {
-                pesanKonfirmasi = "PERINGATAN: Anda yakin ingin menghapus SELURUH data Prota dan Prosem untuk SEMUA Mata Pelajaran?";
-            } else {
-                pesanKonfirmasi = `Yakin ingin menghapus semua data Prota dan Prosem KHUSUS untuk Mapel: ${selectedMapel}?`;
-            }
-
-            if(!confirm(pesanKonfirmasi)) return;
-
-            // Logika penghapusan otomatis
-            if (selectedMapel === 'Semua') {
-                GLOBAL_DATA.prota = []; // Hapus semuanya
-            } else {
-                GLOBAL_DATA.prota = GLOBAL_DATA.prota.filter(p => (p.mapel || '-') !== selectedMapel);
-            }
-
+            const backupProta = [...GLOBAL_DATA.prota]; // Cadangkan data
+            GLOBAL_DATA.prota = GLOBAL_DATA.prota.filter(p => p.id !== id);
+            
             renderProta(); 
             renderProsem();
-            showToast(`Data ${selectedMapel} berhasil dibersihkan!`, 'success');
+
+            // LOGIKA BARU: Sinkronisasi penghapusan ke server
+            const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
+            if(res.success) {
+                showToast('Data berhasil dihapus permanen!', 'success');
+            } else {
+                GLOBAL_DATA.prota = backupProta; // Kembalikan data jika server gagal
+                renderProta(); 
+                renderProsem();
+                showToast('Gagal menghapus di server: ' + res.message, 'error');
+            }
         }
 
         function renderProsem() {
