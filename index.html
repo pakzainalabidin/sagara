@@ -317,7 +317,7 @@
 }
         const APP_CONFIG = {
             IS_PREVIEW: false, 
-            GAS_URL: "https://script.google.com/macros/s/AKfycbx5-AYg8j110TGYN0imDD-EILVCxU6Hv7i70zYngYnf3cErdm5RnctEaOHsS_Pz0vj9/exec", 
+            GAS_URL: "https://script.google.com/macros/s/AKfycbwiSCpv-kRAnNBWAP1z2TKWXgzW7akXaA1dkWzatApL1Ag1zHssw2KoG_tMdT5nxPkE/exec", 
             VERSION: "1.0.0 Enterprise"
         };
 
@@ -1431,7 +1431,7 @@ if (action === 'deletePesanBanyak') {
                                 </tbody>
                             </table>
                             <button class="btn btn-sm btn-primary mt-2" onclick="tambahBarisCP()"><i class="fas fa-plus"></i> Tambah Baris Manual</button>
-                            <button class="btn btn-sm btn-success mt-2 float-end" onclick="showToast('Analisis CP Tersimpan Secara Lokal!', 'success')"><i class="fas fa-save"></i> Simpan</button>
+                            <button class="btn btn-sm btn-success mt-2 float-end" onclick="simpanDataCpKeServer()"><i class="fas fa-save"></i> Simpan Permanen</button>
                             <button class="btn btn-sm btn-danger mt-2 float-end me-2" onclick="exportCP_PDF()"><i class="fas fa-file-pdf"></i> PDF</button>
                         </div>
                     </div> 
@@ -1460,7 +1460,7 @@ if (action === 'deletePesanBanyak') {
                                     <!-- Data akan masuk ke sini melalui PopUp -->
                                 </tbody>
                             </table>
-                            <button class="btn btn-sm btn-success mt-2 float-end" onclick="showToast('Jurnal Harian Disimpan Secara Lokal!', 'success')"><i class="fas fa-save"></i> Simpan</button>
+                            <button class="btn btn-sm btn-success mt-2 float-end" onclick="simpanJurnalKeServer()"><i class="fas fa-save"></i> Simpan Permanen</button>
                             <button class="btn btn-sm btn-danger mt-2 float-end me-2" onclick="exportJurnal_PDF()"><i class="fas fa-file-pdf"></i> PDF</button>
                         </div>
                     </div> 
@@ -2982,6 +2982,10 @@ async function hapusSemuaRiwayat() {
                 renderProta();
                 renderProsem();
             }
+
+            if(pageId === 'page-jurnal-harian') {
+                renderJurnal();
+            }
             
             if(pageId === 'page-ai-modul') initPromptGenerator();
 
@@ -4110,37 +4114,42 @@ async function simpanProfilGuru(e) {
         }
 
         function renderTabelCP() {
-            const selKelas = document.getElementById('select-kelas-cp');
-            const selMapel = document.getElementById('select-mapel-cp');
-            const tbody = document.getElementById('body-analisis-cp');
-            if(!selKelas || !selMapel || !tbody) return;
+    const selKelas = document.getElementById('select-kelas-cp');
+    const selMapel = document.getElementById('select-mapel-cp');
+    const tbody = document.getElementById('body-analisis-cp');
+    if(!selKelas || !selMapel || !tbody) return;
 
-            const k = selKelas.value;
-            const mapel = selMapel.value;
-            const fase = (k === '1' || k === '2') ? 'A' : (k === '3' || k === '4') ? 'B' : 'C';
+    const k = selKelas.value;
+    const mapel = selMapel.value;
+    const fase = (k === '1' || k === '2') ? 'A' : (k === '3' || k === '4') ? 'B' : 'C';
 
-            const cpList = getCPData(mapel, fase);
-            tbody.innerHTML = '';
+    const cpList = getCPData(mapel, fase);
+    tbody.innerHTML = '';
 
-            if(cpList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Pilih Kelas dan Mata Pelajaran untuk menampilkan Capaian Pembelajaran.</td></tr>`;
-                return;
-            }
+    if(cpList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Pilih Kelas dan Mata Pelajaran untuk menampilkan Capaian Pembelajaran.</td></tr>`;
+        return;
+    }
 
-            cpList.forEach((item, idx) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="bg-light align-middle"><textarea class="form-control form-control-sm border-secondary border-opacity-25 bg-white fw-bold" style="resize:none" rows="5">${item.elemen}</textarea></td>
-                    <td><textarea class="form-control form-control-sm border-secondary border-opacity-25 bg-white" style="resize:none" rows="5">${item.cp}</textarea></td>
-                    <td><textarea class="form-control form-control-sm border-secondary border-opacity-25" rows="5" placeholder="Ketik Tujuan Pembelajaran (TP)..."></textarea></td>
-                    <td class="align-middle"><input type="text" class="form-control form-control-sm border-secondary border-opacity-25 text-center mb-2" placeholder="Bab..."></td>
-                    <td class="align-middle"><input type="text" class="form-control form-control-sm border-secondary border-opacity-25" placeholder="Materi..."></td>
-                    <td><textarea class="form-control form-control-sm border-secondary border-opacity-25" rows="5" placeholder="Ketik deskripsi Alur Tujuan Pembelajaran (ATP) secara runut dan logis..."></textarea></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+    // Kunci unik berdasarkan mapel dan kelas
+    const keyData = `${mapel}_Kls${k}`;
+    const savedData = (GLOBAL_DATA.cp && GLOBAL_DATA.cp[keyData]) ? GLOBAL_DATA.cp[keyData] : null;
 
+    cpList.forEach((item, idx) => {
+        const savedRow = savedData && savedData[idx] ? savedData[idx] : {};
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="bg-light align-middle"><textarea class="form-control form-control-sm border-secondary border-opacity-25 bg-white fw-bold cp-elemen" style="resize:none" rows="5">${savedRow.elemen || item.elemen}</textarea></td>
+            <td><textarea class="form-control form-control-sm border-secondary border-opacity-25 bg-white cp-teks" style="resize:none" rows="5">${savedRow.cp || item.cp}</textarea></td>
+            <td><textarea class="form-control form-control-sm border-secondary border-opacity-25 cp-tp" rows="5" placeholder="Ketik Tujuan Pembelajaran (TP)...">${savedRow.tp || ''}</textarea></td>
+            <td class="align-middle"><input type="text" class="form-control form-control-sm border-secondary border-opacity-25 text-center mb-2 cp-bab" placeholder="Bab..." value="${savedRow.bab || ''}"></td>
+            <td class="align-middle"><input type="text" class="form-control form-control-sm border-secondary border-opacity-25 cp-materi" placeholder="Materi..." value="${savedRow.materi || ''}"></td>
+            <td><textarea class="form-control form-control-sm border-secondary border-opacity-25 cp-atp" rows="5" placeholder="Ketik deskripsi Alur Tujuan Pembelajaran (ATP) secara runut dan logis...">${savedRow.atp || ''}</textarea></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
         function tambahBarisCP() {
             const tbody = document.getElementById('body-analisis-cp');
             if(!tbody) return;
@@ -4154,6 +4163,53 @@ async function simpanProfilGuru(e) {
                 <td><textarea class="form-control form-control-sm border-secondary border-opacity-25" rows="5" placeholder="Ketik deskripsi Alur Tujuan Pembelajaran (ATP) secara runut dan logis..."></textarea></td>
             `;
             tbody.appendChild(tr);
+        }
+
+        async function simpanDataCpKeServer() {
+            const selKelas = document.getElementById('select-kelas-cp');
+            const selMapel = document.getElementById('select-mapel-cp');
+            if(!selKelas || !selMapel) return;
+
+            const k = selKelas.value;
+            const mapel = selMapel.value;
+            const keyData = `${mapel}_Kls${k}`;
+
+            if(!GLOBAL_DATA.cp) GLOBAL_DATA.cp = {};
+            let rowsData = [];
+
+            document.querySelectorAll('#body-analisis-cp tr').forEach(row => {
+                if(row.cells.length > 1) {
+                    const elemen = row.querySelector('.cp-elemen') ? row.querySelector('.cp-elemen').value : '';
+                    const cp = row.querySelector('.cp-teks') ? row.querySelector('.cp-teks').value : '';
+                    const tp = row.querySelector('.cp-tp') ? row.querySelector('.cp-tp').value : '';
+                    const bab = row.querySelector('.cp-bab') ? row.querySelector('.cp-bab').value : '';
+                    const materi = row.querySelector('.cp-materi') ? row.querySelector('.cp-materi').value : '';
+                    const atp = row.querySelector('.cp-atp') ? row.querySelector('.cp-atp').value : '';
+                    
+                    rowsData.push({ elemen, cp, tp, bab, materi, atp });
+                }
+            });
+
+            GLOBAL_DATA.cp[keyData] = rowsData;
+
+            const btn = document.querySelector('#page-analisis-cp .btn-success');
+            if(!btn) return;
+            const origHTML = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+            btn.disabled = true;
+
+            const res = await fetchAPI('saveCp', GLOBAL_DATA.cp);
+            
+            if(res.success) {
+                if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+                if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+                showToast('Analisis CP, TP, & ATP Berhasil Disimpan Permanen!', 'success');
+            } else {
+                showToast('Gagal menyimpan: ' + res.message, 'error');
+            }
+
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
         }
 
         function handleJabatanChange(el) {
@@ -5984,36 +6040,104 @@ Materi Pembelajaran: ${mat}`;
             }
         }
 
-        function simpanJurnalModal() {
-            const tgl = document.getElementById('input-modal-jurnal-tgl').value;
-            const kelas = document.getElementById('input-modal-jurnal-kelas').value;
-            const mapel = document.getElementById('input-modal-jurnal-mapel').value;
-            const jam = document.getElementById('input-modal-jurnal-jam').value;
-            const materi = document.getElementById('input-modal-jurnal-materi').value;
-            const catatan = document.getElementById('input-modal-jurnal-catatan').value;
+        // 1. Modifikasi saat menambah jurnal lewat modal
+function simpanJurnalModal() {
+    const tgl = document.getElementById('input-modal-jurnal-tgl').value;
+    const kelas = document.getElementById('input-modal-jurnal-kelas').value;
+    const mapel = document.getElementById('input-modal-jurnal-mapel').value;
+    const jam = document.getElementById('input-modal-jurnal-jam').value;
+    const materi = document.getElementById('input-modal-jurnal-materi').value;
+    const catatan = document.getElementById('input-modal-jurnal-catatan').value;
 
-            if(!materi) {
-                showToast('Materi Pokok wajib diisi!', 'warning');
-                return;
-            }
+    if(!materi) {
+        showToast('Materi Pokok wajib diisi!', 'warning');
+        return;
+    }
 
-            const tbody = document.getElementById('body-jurnal');
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${tgl}</td>
-                <td>${kelas}</td>
-                <td class="fw-bold text-primary">${mapel}</td>
-                <td>${jam}</td>
-                <td class="text-start">${materi}</td>
-                <td class="text-start">${catatan}</td>
-                <td><button class="btn btn-sm btn-light text-danger shadow-sm" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>
-            `;
-            tbody.appendChild(tr);
+    if(!GLOBAL_DATA.jurnal) GLOBAL_DATA.jurnal = [];
 
-            tutupModalJurnal();
-            showToast('Berhasil ditambahkan ke daftar Jurnal!', 'success');
-        }
+    // Masukkan data baru ke array memori
+    GLOBAL_DATA.jurnal.push({
+        id: 'jrn_' + Date.now(),
+        tgl: tgl,
+        kelas: kelas,
+        mapel: mapel,
+        jam: jam || '-',
+        materi: materi,
+        catatan: catatan || '-'
+    });
 
+    renderJurnal(); // Tampilkan ke tabel
+    tutupModalJurnal();
+    showToast('Jurnal ditambahkan! Klik "Simpan Permanen" untuk mengunci.', 'info');
+}
+
+// 2. Fungsi untuk merender ulang tabel dari data GLOBAL_DATA.jurnal
+function renderJurnal() {
+    const tbody = document.getElementById('body-jurnal');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+
+    let count = 0;
+    (GLOBAL_DATA.jurnal || []).forEach(j => {
+        count++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${j.tgl}</td>
+            <td>${j.kelas}</td>
+            <td class="fw-bold text-primary">${j.mapel}</td>
+            <td>${j.jam}</td>
+            <td class="text-start">${j.materi}</td>
+            <td class="text-start">${j.catatan}</td>
+            <td><button class="btn btn-sm btn-light text-danger shadow-sm" onclick="hapusJurnal('${j.id}')"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if(count === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-4">Belum ada data Jurnal Harian.</td></tr>';
+    }
+}
+
+// 3. Fungsi Hapus Jurnal & Sinkron ke Server
+async function hapusJurnal(id) {
+    if(!confirm('Hapus jurnal ini secara permanen?')) return;
+
+    const backup = [...GLOBAL_DATA.jurnal];
+    GLOBAL_DATA.jurnal = GLOBAL_DATA.jurnal.filter(j => j.id !== id);
+    renderJurnal();
+
+    const res = await fetchAPI('saveJurnal', GLOBAL_DATA.jurnal);
+    if(res.success) {
+        showToast('Jurnal berhasil dihapus permanen!', 'success');
+    } else {
+        GLOBAL_DATA.jurnal = backup;
+        renderJurnal();
+        showToast('Gagal menghapus: ' + res.message, 'error');
+    }
+}
+
+// 4. Fungsi tombol "Simpan Permanen" Jurnal ke Google Sheets
+async function simpanJurnalKeServer() {
+    const btn = document.querySelector('#page-jurnal-harian .btn-success');
+    if(!btn) return;
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+    btn.disabled = true;
+
+    const res = await fetchAPI('saveJurnal', GLOBAL_DATA.jurnal || []);
+
+    if(res.success) {
+        if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+        if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+        showToast('Jurnal Harian Berhasil Disimpan Permanen ke Server!', 'success');
+    } else {
+        showToast('Gagal menyimpan: ' + res.message, 'error');
+    }
+
+    btn.innerHTML = origHTML;
+    btn.disabled = false;
+}
 // ==========================================
         // FUNGSI MAPEL OTOMATIS & PROGRAM TAHUNAN / SEMESTER
         // ==========================================
