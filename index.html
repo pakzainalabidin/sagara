@@ -317,7 +317,7 @@
 }
         const APP_CONFIG = {
             IS_PREVIEW: false, 
-            GAS_URL: "https://script.google.com/macros/s/AKfycbwabyKTomjjbgn80pB0_TtXcWr85fZciucMcgST2YnUbYRDi6Ov8cndo-TDpV3MZGA/exec", 
+            GAS_URL: "https://script.google.com/macros/s/AKfycbz5E7m1Zw3VsKreP4oCvFeFbAIu2AQ28jxhPvBAzSeEvHDPlSJmAAHchz_YCUDljpRp/exec", 
             VERSION: "1.0.0 Enterprise"
         };
 
@@ -1272,7 +1272,7 @@ if (action === 'deletePesanBanyak') {
                     </div>
                 </div>
 
-                <<div id="page-nilai" class="page-content" style="display: none;">
+                <div id="page-nilai" class="page-content" style="display: none;">
                     <div class="card-panel border-0 shadow-sm">
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
                             <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list me-2 text-primary"></i>Rekap Nilai (E-Raport)</h5>
@@ -1523,6 +1523,7 @@ if (action === 'deletePesanBanyak') {
                                 <select class="form-select form-select-sm border-danger" id="filter-mapel-prota" style="min-width: 150px;" onchange="renderProta()"></select>
                                 <button class="btn btn-sm btn-danger" onclick="exportProta_PDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
                                 <button class="btn btn-sm btn-primary" onclick="bukaModalProta()"><i class="fas fa-plus"></i> Tambah Prota</button>
+                                <button class="btn btn-sm btn-success" onclick="simpanProtaKeServer()"><i class="fas fa-save"></i> Simpan Permanen</button>
                                 <button class="btn btn-sm btn-danger" onclick="hapusSemuaProta()"><i class="fas fa-trash-alt"></i> Bersihkan Semua</button>
                             </div>
                         </div>
@@ -3154,7 +3155,7 @@ async function hapusSemuaRiwayat() {
             if(typeof renderProta === 'function') renderProta();
             if(typeof renderProsem === 'function') renderProsem();
             if(typeof renderJurnal === 'function') renderJurnal();
-            if(typeof renderTabelCP === 'function') renderTabelCP()
+            if(typeof renderTabelCP === 'function') renderTabelCP();
             
             if(document.getElementById('page-pesan').style.display === 'block') {
                 muatIsiChat();
@@ -5386,65 +5387,6 @@ async function simpanProfilGuru(e) {
             return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
-        async function simpanProtaModal() {
-    const smt = document.getElementById('input-modal-prota-semester').value;
-    const mapel = document.getElementById('input-modal-prota-mapel').value;
-    const tglVal = document.getElementById('input-modal-prota-tgl').value;
-    const bab = document.getElementById('input-modal-prota-bab').value;
-    const materi = document.getElementById('input-modal-prota-materi').value;
-    const tp = document.getElementById('input-modal-prota-tp').value;
-    const bln = document.getElementById('input-modal-prota-bulan').value;
-    const mgg = document.getElementById('input-modal-prota-minggu').value;
-    const hr = document.getElementById('input-modal-prota-hari').value;
-    const jp = document.getElementById('input-modal-prota-jp').value || '-'; 
-
-    if(!tglVal || !tp || !bab) {
-        showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); 
-        return;
-    }
-
-    const btn = document.querySelector('#modalTambahProta .btn-danger');
-    const origHTML = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan ke Server...';
-    btn.disabled = true;
-
-    if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
-
-    const newDataItem = {
-        id: 'prt_' + Date.now(),
-        smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
-    };
-
-    GLOBAL_DATA.prota.push(newDataItem);
-
-    try {
-        const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
-
-        if(res.success) {
-            renderProta(); 
-            renderProsem(); 
-            tutupModalProta();
-
-            if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
-            if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
-
-            showToast('Prota Berhasil Disimpan & Tersinkron Permanen ke Server!', 'success');
-        } else {
-            GLOBAL_DATA.prota.pop(); // Batalkan jika server menolak
-            showToast('Gagal menyimpan ke server: ' + res.message, 'error');
-        }
-    } catch (err) {
-        GLOBAL_DATA.prota.pop();
-        showToast('Terjadi kesalahan jaringan: ' + err.message, 'error');
-    }
-
-    btn.innerHTML = origHTML;
-    btn.disabled = false;
-}
-        function sinkronProtaManual() {
-            renderProsem();
-            showToast('Data berhasil disinkronisasi ke Menu Prosem!', 'success');
-        }
 
    function renderProta() {
             const tbody = document.getElementById('body-prota');
@@ -6216,31 +6158,55 @@ async function simpanJurnalKeServer() {
             return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
         }
 
-        function simpanProtaModal() {
-            const smt = document.getElementById('input-modal-prota-semester').value;
-            const mapel = document.getElementById('input-modal-prota-mapel').value;
-            const tglVal = document.getElementById('input-modal-prota-tgl').value;
-            const bab = document.getElementById('input-modal-prota-bab').value;
-            const materi = document.getElementById('input-modal-prota-materi').value;
-            const tp = document.getElementById('input-modal-prota-tp').value;
-            const bln = document.getElementById('input-modal-prota-bulan').value;
-            const mgg = document.getElementById('input-modal-prota-minggu').value;
-            const hr = document.getElementById('input-modal-prota-hari').value;
-            const jp = document.getElementById('input-modal-prota-jp').value || '-'; 
+        // 1. Fungsi PopUp: Menambah data ke tabel sementara di layar
+function simpanProtaModal() {
+    const smt = document.getElementById('input-modal-prota-semester').value;
+    const mapel = document.getElementById('input-modal-prota-mapel').value;
+    const tglVal = document.getElementById('input-modal-prota-tgl').value;
+    const bab = document.getElementById('input-modal-prota-bab').value;
+    const materi = document.getElementById('input-modal-prota-materi').value;
+    const tp = document.getElementById('input-modal-prota-tp').value;
+    const bln = document.getElementById('input-modal-prota-bulan').value;
+    const mgg = document.getElementById('input-modal-prota-minggu').value;
+    const hr = document.getElementById('input-modal-prota-hari').value;
+    const jp = document.getElementById('input-modal-prota-jp').value || '-'; 
 
-            if(!tglVal || !tp || !bab) {
-                showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); return;
-            }
+    if(!tglVal || !tp || !bab) {
+        showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); return;
+    }
 
-            if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
-            GLOBAL_DATA.prota.push({
-                id: 'prt_' + Date.now(),
-                smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
-            });
+    if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
+    GLOBAL_DATA.prota.push({
+        id: 'prt_' + Date.now(),
+        smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
+    });
 
-            renderProta(); renderProsem(); tutupModalProta();
-            showToast('Tersimpan di Prota! Jangan lupa klik tombol Sinkron.', 'success');
-        }
+    renderProta(); renderProsem(); tutupModalProta();
+    // Beri tahu guru untuk mengklik tombol hijau
+    showToast('Tersimpan di Tabel! JANGAN LUPA KLIK "Simpan Permanen" di atas.', 'info'); 
+}
+
+// 2. Fungsi Tombol Hijau Luar: Mengunci data ke Google Sheets
+async function simpanProtaKeServer() {
+    const btn = document.querySelector('#page-prota .btn-success');
+    if(!btn) return;
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Menyimpan...';
+    btn.disabled = true;
+
+    const res = await fetchAPI('saveProta', GLOBAL_DATA.prota || []);
+    
+    if(res.success) {
+        if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+        if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+        showToast('Data Prota Berhasil Disimpan Permanen ke Server!', 'success');
+    } else {
+        showToast('Gagal menyimpan: ' + res.message, 'error');
+    }
+
+    btn.innerHTML = origHTML;
+    btn.disabled = false;
+}
 
         function renderProta() {
             const tbody = document.getElementById('body-prota');
