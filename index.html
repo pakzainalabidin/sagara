@@ -317,7 +317,7 @@
 }
         const APP_CONFIG = {
             IS_PREVIEW: false, 
-            GAS_URL: "https://script.google.com/macros/s/AKfycbyPetibcxZD0_xE6f6E2KULT4lqzD6RImzv4RGNZyjjU8ap2u6MEsor7Fffl7LWEMfK/exec", 
+            GAS_URL: "https://script.google.com/macros/s/AKfycbx5-AYg8j110TGYN0imDD-EILVCxU6Hv7i70zYngYnf3cErdm5RnctEaOHsS_Pz0vj9/exec", 
             VERSION: "1.0.0 Enterprise"
         };
 
@@ -5314,57 +5314,60 @@ async function simpanProfilGuru(e) {
         }
 
         async function simpanProtaModal() {
-            const btn = document.querySelector('#modalTambahProta .btn-danger');
-            const origHTML = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan...';
-            btn.disabled = true;
+    const smt = document.getElementById('input-modal-prota-semester').value;
+    const mapel = document.getElementById('input-modal-prota-mapel').value;
+    const tglVal = document.getElementById('input-modal-prota-tgl').value;
+    const bab = document.getElementById('input-modal-prota-bab').value;
+    const materi = document.getElementById('input-modal-prota-materi').value;
+    const tp = document.getElementById('input-modal-prota-tp').value;
+    const bln = document.getElementById('input-modal-prota-bulan').value;
+    const mgg = document.getElementById('input-modal-prota-minggu').value;
+    const hr = document.getElementById('input-modal-prota-hari').value;
+    const jp = document.getElementById('input-modal-prota-jp').value || '-'; 
 
-            const smt = document.getElementById('input-modal-prota-semester').value;
-            const mapel = document.getElementById('input-modal-prota-mapel').value;
-            const tglVal = document.getElementById('input-modal-prota-tgl').value;
-            const bab = document.getElementById('input-modal-prota-bab').value;
-            const materi = document.getElementById('input-modal-prota-materi').value;
-            const tp = document.getElementById('input-modal-prota-tp').value;
-            const bln = document.getElementById('input-modal-prota-bulan').value;
-            const mgg = document.getElementById('input-modal-prota-minggu').value;
-            const hr = document.getElementById('input-modal-prota-hari').value;
-            const jp = document.getElementById('input-modal-prota-jp').value || '-'; 
+    if(!tglVal || !tp || !bab) {
+        showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); 
+        return;
+    }
 
-            if(!tglVal || !tp || !bab) {
-                showToast('Tanggal, Bab, dan Tujuan Pembelajaran wajib diisi!', 'warning'); 
-                btn.innerHTML = origHTML;
-                btn.disabled = false;
-                return;
-            }
+    const btn = document.querySelector('#modalTambahProta .btn-danger');
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan ke Server...';
+    btn.disabled = true;
 
-            if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
-            GLOBAL_DATA.prota.push({
-                id: 'prt_' + Date.now(),
-                smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
-            });
+    if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
 
-            // LOGIKA BARU: Kirim data langsung ke Server (Database Google Sheets)
-            const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
-            
-            if (res.success) {
-                renderProta(); 
-                renderProsem(); 
-                tutupModalProta();
-                
-                if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
-                if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
-                
-                showToast('Prota Berhasil Disimpan & Tersinkron Permanen!', 'success');
-            } else {
-                // Jika server menolak, hapus data terakhir yang masuk ke memori
-                GLOBAL_DATA.prota.pop();
-                showToast('Gagal menyimpan ke server: ' + res.message, 'error');
-            }
-            
-            btn.innerHTML = origHTML;
-            btn.disabled = false;
+    const newDataItem = {
+        id: 'prt_' + Date.now(),
+        smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
+    };
+
+    GLOBAL_DATA.prota.push(newDataItem);
+
+    try {
+        const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
+
+        if(res.success) {
+            renderProta(); 
+            renderProsem(); 
+            tutupModalProta();
+
+            if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+            if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+
+            showToast('Prota Berhasil Disimpan & Tersinkron Permanen ke Server!', 'success');
+        } else {
+            GLOBAL_DATA.prota.pop(); // Batalkan jika server menolak
+            showToast('Gagal menyimpan ke server: ' + res.message, 'error');
         }
+    } catch (err) {
+        GLOBAL_DATA.prota.pop();
+        showToast('Terjadi kesalahan jaringan: ' + err.message, 'error');
+    }
 
+    btn.innerHTML = origHTML;
+    btn.disabled = false;
+}
         function sinkronProtaManual() {
             renderProsem();
             showToast('Data berhasil disinkronisasi ke Menu Prosem!', 'success');
@@ -6131,25 +6134,26 @@ Materi Pembelajaran: ${mat}`;
         }
 
         async function hapusProta(id) {
-            if(!confirm('Hapus data ini dari Prota dan Prosem secara permanen?')) return;
-            
-            const backupProta = [...GLOBAL_DATA.prota]; // Cadangkan data
-            GLOBAL_DATA.prota = GLOBAL_DATA.prota.filter(p => p.id !== id);
-            
-            renderProta(); 
-            renderProsem();
+    if(!confirm('Hapus data ini dari Prota dan Prosem secara permanen?')) return;
 
-            // LOGIKA BARU: Sinkronisasi penghapusan ke server
-            const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
-            if(res.success) {
-                showToast('Data berhasil dihapus permanen!', 'success');
-            } else {
-                GLOBAL_DATA.prota = backupProta; // Kembalikan data jika server gagal
-                renderProta(); 
-                renderProsem();
-                showToast('Gagal menghapus di server: ' + res.message, 'error');
-            }
-        }
+    const backupProta = [...GLOBAL_DATA.prota]; 
+    GLOBAL_DATA.prota = GLOBAL_DATA.prota.filter(p => p.id !== id);
+
+    renderProta(); 
+    renderProsem();
+
+    showToast('Menyinkronkan penghapusan ke server...', 'info');
+
+    const res = await fetchAPI('saveProta', GLOBAL_DATA.prota);
+    if(res.success) {
+        showToast('Data berhasil dihapus permanen!', 'success');
+    } else {
+        GLOBAL_DATA.prota = backupProta; // Kembalikan data jika gagal
+        renderProta(); 
+        renderProsem();
+        showToast('Gagal menghapus di server: ' + res.message, 'error');
+    }
+}
 
         function renderProsem() {
             const bGanjil = document.getElementById('body-prosem-ganjil');
