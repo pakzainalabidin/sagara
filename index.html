@@ -1932,14 +1932,7 @@ if (action === 'deletePesanBanyak') {
                         <label class="form-label small fw-bold">Tujuan Pembelajaran <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="input-modal-prota-tp" rows="2" placeholder="Tulis Tujuan Pembelajaran lengkap..."></textarea>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Alokasi Waktu (Minggu)</label>
-                            <select class="form-select" id="input-modal-prota-minggu">
-                                <option value="Minggu 1">Minggu 1</option><option value="Minggu 2">Minggu 2</option>
-                                <option value="Minggu 3">Minggu 3</option><option value="Minggu 4">Minggu 4</option>
-                            </select>
-                        </div>
+                   <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Alokasi Waktu (Minggu)</label>
                             <select class="form-select" id="input-modal-prota-minggu">
@@ -1947,10 +1940,12 @@ if (action === 'deletePesanBanyak') {
                                 <option value="Minggu 2">Minggu 2</option>
                                 <option value="Minggu 3">Minggu 3</option>
                                 <option value="Minggu 4">Minggu 4</option>
-                                <!-- FITUR BARU: Tambahan Minggu 5 -->
                                 <option value="Minggu 5">Minggu 5</option>
                             </select>
                         </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Alokasi Waktu (Hari)</label>
+                            <select class="form-select" id="input-modal-prota-hari">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Jumlah JP</label>
                             <input type="number" class="form-control" id="input-modal-prota-jp" placeholder="Misal: 2">
