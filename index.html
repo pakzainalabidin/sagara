@@ -293,23 +293,28 @@
             return `${yyyy}-${mm}-${dd}`;
         }
 
-        // FUNGSI PENJINAK ZONA WAKTU DARI SERVER
         function normalizeDataServer() {
-            if (!GLOBAL_DATA.presensi) return;
-            let normalizedPresensi = {};
-            for (let key in GLOBAL_DATA.presensi) {
-                let d = new Date(key);
-                if (!isNaN(d.getTime()) && key.includes('T')) { 
-                    let yyyy = d.getFullYear();
-                    let mm = String(d.getMonth() + 1).padStart(2, '0');
-                    let dd = String(d.getDate()).padStart(2, '0');
-                    normalizedPresensi[`${yyyy}-${mm}-${dd}`] = GLOBAL_DATA.presensi[key];
-                } else {
-                    normalizedPresensi[key] = GLOBAL_DATA.presensi[key];
-                }
-            }
-            GLOBAL_DATA.presensi = normalizedPresensi;
+    if (!GLOBAL_DATA.presensi) GLOBAL_DATA.presensi = {};
+    let normalizedPresensi = {};
+    
+    for (let key in GLOBAL_DATA.presensi) {
+        let d = new Date(key);
+        if (!isNaN(d.getTime())) { 
+            // Memaksa format tanggal menjadi YYYY-MM-DD waktu lokal
+            let yyyy = d.getFullYear();
+            let mm = String(d.getMonth() + 1).padStart(2, '0');
+            let dd = String(d.getDate()).padStart(2, '0');
+            let formatTgl = `${yyyy}-${mm}-${dd}`;
+            
+            // Gabungkan jika ada data yang terpecah akibat perbedaan jam di server
+            if (!normalizedPresensi[formatTgl]) normalizedPresensi[formatTgl] = {};
+            Object.assign(normalizedPresensi[formatTgl], GLOBAL_DATA.presensi[key]);
+        } else {
+            normalizedPresensi[key] = GLOBAL_DATA.presensi[key];
         }
+    }
+    GLOBAL_DATA.presensi = normalizedPresensi;
+}
         const APP_CONFIG = {
             IS_PREVIEW: false, 
             GAS_URL: "https://script.google.com/macros/s/AKfycbyPetibcxZD0_xE6f6E2KULT4lqzD6RImzv4RGNZyjjU8ap2u6MEsor7Fffl7LWEMfK/exec", 
@@ -338,7 +343,6 @@
             return host === "localhost" || host === "127.0.0.1" || host.includes("gemini") || host.includes("aistudio") || window.location.protocol === "file:" || window.location.protocol === "blob:";
         }
 
-// FITUR BARU: Mencatat ID pesan terakhir yang dibaca SECARA SPESIFIK per ruangan/kontak
 function updateLastRead(contactId) {
     if(!currentUser) return;
     let maxId = 0;
@@ -354,8 +358,12 @@ function updateLastRead(contactId) {
         }
         if (isRoomMatch && msg.id > maxId) maxId = msg.id;
     });
-    // Format memory baru: last_read_chat_Fajarisman_Budi
+    
+    // Simpan dengan penanda khusus per sesi akun
     localStorage.setItem('last_read_chat_' + currentUser.username + '_' + contactId, maxId.toString());
+    
+    // Hilangkan notifikasi di UI secara langsung saat diklik
+    setTimeout(() => hitungUnreadPesan(), 100);
 }
 
 // FITUR BARU: Mencegah notifikasi palsu/membludak saat pertama kali login di akun atau perangkat baru
@@ -2292,17 +2300,22 @@ function sinkronkanMasterKey() {
         }
 
         function handleLogout() {
-            currentUser = null;
-            document.getElementById('app-layout').style.display = 'none';
-            document.getElementById('login-page').style.display = 'flex';
-            
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-            
-            batalOTP(); // <--- Kembalikan layar ke input password awal
-            resetPasswordEye();
+    // 1. Hapus kredensial pengguna aktif
+    currentUser = null;
+    
+    // 2. Hapus cache lokal utama agar tidak bocor
+    localStorage.removeItem('SAGARA_LOCAL_DB');
+    
+    // 3. Bersihkan sisa memori "last read" dari fitur chat
+    for (let key in localStorage) {
+        if (key.startsWith('last_read_chat_')) {
+            localStorage.removeItem(key);
         }
-
+    }
+    
+    // 4. Muat ulang halaman secara penuh untuk mereset seluruh state dan visual UI
+    window.location.reload();
+}
         async function showAppLayout() {
             document.getElementById('login-page').style.display = 'none';
             document.getElementById('app-layout').style.display = 'flex';
@@ -3593,53 +3606,62 @@ async function simpanProfilGuru(e) {
         }
 
         async function simpanDataPresensi() {
-            const btn = document.getElementById('btn-simpan-presensi');
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
-            btn.disabled = true;
+    const btn = document.getElementById('btn-simpan-presensi');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
+    btn.disabled = true;
 
-            const tgl = document.getElementById('tanggal-presensi').value;
-            const fKelas = document.getElementById('filter-kelas-presensi').value;
-            let dataSiswa = {};
-            let adaYangDiabsen = false;
-            
-            document.querySelectorAll('#body-presensi tr').forEach(row => {
-                if(row.style.display !== 'none') {
-                    const nisn = row.getAttribute('data-nisn');
-                    const r = row.querySelector('.radio-absen:checked');
-                    if(r) {
-                        dataSiswa[nisn] = r.value;
-                        adaYangDiabsen = true;
-                    }
-                }
-            });
+    const tgl = document.getElementById('tanggal-presensi').value;
+    const fKelas = document.getElementById('filter-kelas-presensi').value;
+    
+    // Validasi: Wajib memilih kelas spesifik (mencegah bug di database)
+    if(fKelas === 'Semua') {
+        showToast('Silakan pilih kelas spesifik (1-6) terlebih dahulu sebelum menyimpan!', 'warning');
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
+        btn.disabled = false;
+        return;
+    }
 
-            if (!adaYangDiabsen) {
-                showToast('Pilih status kehadiran minimal 1 siswa terlebih dahulu!', 'warning');
-                btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
-                btn.disabled = false;
-                return;
-            }
-
-            const res = await fetchAPI('savePresensi', { tanggal: tgl, kelas: fKelas, data: dataSiswa });
-            if(res.success) {
-                if(!GLOBAL_DATA.presensi[tgl]) GLOBAL_DATA.presensi[tgl] = {};
-                Object.assign(GLOBAL_DATA.presensi[tgl], dataSiswa);
-                
-                // PERBAIKAN: Refresh Dashboard Guru & Admin agar persentase langsung naik
-                if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
-                if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
-
-                // Mengunci tabel setelah berhasil
-                filterTabelPresensi();
-
-                showToast('Presensi Tgl ' + tgl + ' Berhasil Dikunci & Disimpan!', 'success');
-            } else {
-                showToast(res.message, 'error');
-                btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
-                btn.disabled = false;
+    let dataSiswa = {};
+    let adaYangDiabsen = false;
+    
+    document.querySelectorAll('#body-presensi tr').forEach(row => {
+        if(row.style.display !== 'none') {
+            const nisn = row.getAttribute('data-nisn');
+            const r = row.querySelector('.radio-absen:checked');
+            if(r) {
+                dataSiswa[nisn] = r.value;
+                adaYangDiabsen = true;
             }
         }
+    });
 
+    if (!adaYangDiabsen) {
+        showToast('Pilih status kehadiran minimal 1 siswa terlebih dahulu!', 'warning');
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
+        btn.disabled = false;
+        return;
+    }
+
+    // GABUNGKAN DATA: Proses ini mencegah data kelas lain di hari yang sama terhapus
+    if(!GLOBAL_DATA.presensi[tgl]) GLOBAL_DATA.presensi[tgl] = {};
+    Object.assign(GLOBAL_DATA.presensi[tgl], dataSiswa);
+
+    // Kirim seluruh data yang sudah tergabung ke server
+    const res = await fetchAPI('savePresensi', { tanggal: tgl, kelas: 'Semua', data: GLOBAL_DATA.presensi[tgl] });
+    
+    if(res.success) {
+        if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
+        if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
+
+        filterTabelPresensi();
+        showToast('Presensi Tgl ' + tgl + ' Berhasil Dikunci & Disimpan!', 'success');
+    } else {
+        showToast('Gagal menyimpan: ' + res.message, 'error');
+    }
+    
+    btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
+    btn.disabled = false;
+}
         function muatDataNilai() {
             const mapel = document.getElementById('select-mapel-nilai').value;
             const fKelas = document.getElementById('filter-kelas-nilai').value;
