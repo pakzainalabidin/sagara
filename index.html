@@ -1224,11 +1224,22 @@ if (action === 'deletePesanBanyak') {
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
                             <h5 class="fw-bold mb-0"><i class="fas fa-calendar-check me-2 text-success"></i>Presensi Harian</h5>
                             <div class="mt-2 mt-md-0 d-flex gap-2">
+                                <!-- Dropdown Filter Mapel (BARU) -->
+                                <select class="form-select form-select-sm border-success" id="filter-mapel-presensi" style="width: 140px;" onchange="muatPresensiTanggal()">
+                                    <option value="Umum">Guru Kelas</option>
+                                    <option value="PJOK">PJOK</option>
+                                    <option value="PAI">PAI</option>
+                                    <option value="Bahasa Inggris">Bhs. Inggris</option>
+                                    <option value="Bahasa Madura">Bhs. Madura</option>
+                                </select>
+
+                                <!-- Dropdown Filter Kelas (LAMA) -->
                                 <select class="form-select form-select-sm border-success" id="filter-kelas-presensi" style="width: 150px;" onchange="filterTabelPresensi()">
                                     <option value="Semua" selected>Semua Kelas</option>
                                     <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
                                     <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
                                 </select>
+                                
                                 <input type="date" id="tanggal-presensi" class="form-control form-control-sm border-success" value="" onchange="muatPresensiTanggal()">
                                 <button class="btn btn-sm btn-primary" onclick="bukaModalPresensi()"><i class="fas fa-plus"></i> Input Presensi</button>
                                 <button class="btn btn-sm btn-danger" onclick="bukaModalExportPDF()"><i class="fas fa-file-pdf"></i> PDF</button>
@@ -3611,118 +3622,100 @@ async function simpanProfilGuru(e) {
         }
 
         function muatPresensiTanggal() {
-            const tgl = document.getElementById('tanggal-presensi').value;
-            if(!tgl) return;
+    const tglDasar = document.getElementById('tanggal-presensi').value;
+    if(!tglDasar) return;
 
-            const liburNasional = [
-                "2026-08-17", "2026-08-25", "2026-12-24", "2026-12-25",
-                "2027-01-01", "2027-01-05", "2027-02-06", "2027-03-09", 
-                "2027-03-10", "2027-03-11", "2027-03-26", "2027-03-28", 
-                "2027-05-01", "2027-05-06", "2027-05-17", "2027-05-20", 
-                "2027-06-01", "2027-06-06"
-            ];
+    // Pembentukan ID Kamar Presensi Unik
+    const fMP = document.getElementById('filter-mapel-presensi');
+    const tipeKamar = fMP ? fMP.value : 'Umum';
+    const tgl = tipeKamar === 'Umum' ? tglDasar : tglDasar + "_" + tipeKamar;
 
-            const dateObj = new Date(tgl);
-            const isMinggu = dateObj.getDay() === 0; 
-            const isLiburNasional = liburNasional.includes(tgl);
+    const liburNasional = ["2026-08-17", "2026-08-25", "2026-12-24", "2026-12-25", "2027-01-01", "2027-01-05", "2027-02-06", "2027-03-09", "2027-03-10", "2027-03-11", "2027-03-26", "2027-03-28", "2027-05-01", "2027-05-06", "2027-05-17", "2027-05-20", "2027-06-01", "2027-06-06"];
+    const dateObj = new Date(tglDasar);
+    const isMinggu = dateObj.getDay() === 0; 
+    const isLiburNasional = liburNasional.includes(tglDasar);
 
-            const btnSimpan = document.getElementById('btn-simpan-presensi');
-            const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
-            
-            if (isMinggu || isLiburNasional) {
-                const ketLibur = isMinggu ? "Hari Minggu" : "Hari Libur Nasional";
-                showToast(`Tanggal ${tgl} adalah ${ketLibur}! Presensi ditutup.`, 'error');
+    const btnSimpan = document.getElementById('btn-simpan-presensi');
+    const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
+    
+    if (isMinggu || isLiburNasional) {
+        const ketLibur = isMinggu ? "Hari Minggu" : "Hari Libur Nasional";
+        showToast(`Tanggal ${tglDasar} adalah ${ketLibur}! Presensi ditutup.`, 'error');
 
-                document.querySelectorAll('#body-presensi tr').forEach(row => {
-                    row.classList.add('table-danger'); 
-                    row.querySelectorAll('.radio-absen').forEach(r => {
-                        r.checked = false; 
-                        r.disabled = true; 
-                    });
-                });
+        document.querySelectorAll('#body-presensi tr').forEach(row => {
+            row.classList.add('table-danger'); 
+            row.querySelectorAll('.radio-absen').forEach(r => { r.checked = false; r.disabled = true; });
+        });
 
-                if(btnSimpan) { btnSimpan.disabled = true; btnSimpan.innerHTML = '<i class="fas fa-ban me-1"></i> Libur'; }
-                if(btnInputModal) btnInputModal.disabled = true;
-
-                if(document.getElementById('tot-hadir')) document.getElementById('tot-hadir').innerText = 0;
-                if(document.getElementById('tot-sakit')) document.getElementById('tot-sakit').innerText = 0;
-                if(document.getElementById('tot-izin')) document.getElementById('tot-izin').innerText = 0;
-                if(document.getElementById('tot-alfa')) document.getElementById('tot-alfa').innerText = 0;
-                if(document.getElementById('tot-persen')) document.getElementById('tot-persen').innerText = 0;
-                return; 
-            }
-            
-            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
-            
-            document.querySelectorAll('#body-presensi tr').forEach(row => {
-                row.classList.remove('table-danger'); 
-                const nisn = row.getAttribute('data-nisn');
-                const radios = row.querySelectorAll('.radio-absen');
-                
-                // PERBAIKAN: Bersihkan (kosongkan) centang terlebih dahulu
-                radios.forEach(r => r.checked = false); 
-
-                // Jika data riwayat tersedia (History Tidak Hilang), panggil datanya
-                if(dataPresensi[nisn]) {
-                    const r = Array.from(radios).find(rad => rad.value === dataPresensi[nisn]);
-                    if(r) r.checked = true;
-                }
-            });
-            
-            // Panggil filter untuk menghitung visibility dan MENGUNCI absensi jika perlu
-            filterTabelPresensi();
+        if(btnSimpan) { btnSimpan.disabled = true; btnSimpan.innerHTML = '<i class="fas fa-ban me-1"></i> Libur'; }
+        if(btnInputModal) btnInputModal.disabled = true;
+        if(document.getElementById('tot-hadir')) document.getElementById('tot-hadir').innerText = 0;
+        if(document.getElementById('tot-sakit')) document.getElementById('tot-sakit').innerText = 0;
+        if(document.getElementById('tot-izin')) document.getElementById('tot-izin').innerText = 0;
+        if(document.getElementById('tot-alfa')) document.getElementById('tot-alfa').innerText = 0;
+        if(document.getElementById('tot-persen')) document.getElementById('tot-persen').innerText = 0;
+        return; 
+    }
+    
+    const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
+    
+    document.querySelectorAll('#body-presensi tr').forEach(row => {
+        row.classList.remove('table-danger'); 
+        const nisn = row.getAttribute('data-nisn');
+        const radios = row.querySelectorAll('.radio-absen');
+        radios.forEach(r => r.checked = false); 
+        if(dataPresensi[nisn]) {
+            const r = Array.from(radios).find(rad => rad.value === dataPresensi[nisn]);
+            if(r) r.checked = true;
         }
+    });
+    
+    filterTabelPresensi();
+}
 
         async function simpanDataPresensi() {
     const btn = document.getElementById('btn-simpan-presensi');
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Menyimpan...';
     btn.disabled = true;
 
-    const tgl = document.getElementById('tanggal-presensi').value;
+    const tglDasar = document.getElementById('tanggal-presensi').value;
     const fKelas = document.getElementById('filter-kelas-presensi').value;
     
-    // Validasi: Wajib memilih kelas spesifik (mencegah bug di database)
+    const fMP = document.getElementById('filter-mapel-presensi');
+    const tipeKamar = fMP ? fMP.value : 'Umum';
+    const tgl = tipeKamar === 'Umum' ? tglDasar : tglDasar + "_" + tipeKamar;
+
     if(fKelas === 'Semua') {
         showToast('Silakan pilih kelas spesifik (1-6) terlebih dahulu sebelum menyimpan!', 'warning');
-        btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
-        btn.disabled = false;
-        return;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi'; btn.disabled = false; return;
     }
 
     let dataSiswa = {};
     let adaYangDiabsen = false;
-    
     document.querySelectorAll('#body-presensi tr').forEach(row => {
         if(row.style.display !== 'none') {
             const nisn = row.getAttribute('data-nisn');
             const r = row.querySelector('.radio-absen:checked');
-            if(r) {
-                dataSiswa[nisn] = r.value;
-                adaYangDiabsen = true;
-            }
+            if(r) { dataSiswa[nisn] = r.value; adaYangDiabsen = true; }
         }
     });
 
     if (!adaYangDiabsen) {
         showToast('Pilih status kehadiran minimal 1 siswa terlebih dahulu!', 'warning');
-        btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi';
-        btn.disabled = false;
-        return;
+        btn.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi'; btn.disabled = false; return;
     }
 
-    // GABUNGKAN DATA: Proses ini mencegah data kelas lain di hari yang sama terhapus
     if(!GLOBAL_DATA.presensi[tgl]) GLOBAL_DATA.presensi[tgl] = {};
     Object.assign(GLOBAL_DATA.presensi[tgl], dataSiswa);
 
-    // Kirim seluruh data yang sudah tergabung ke server
+    // Kirim ID Unik 'tgl' ke Server
     const res = await fetchAPI('savePresensi', { tanggal: tgl, kelas: 'Semua', data: GLOBAL_DATA.presensi[tgl] });
     
     if(res.success) {
         if(typeof updateDashboardGuru === 'function') updateDashboardGuru();
         if(typeof renderKinerjaGuru === 'function') renderKinerjaGuru();
-
         filterTabelPresensi();
-        showToast('Presensi Tgl ' + tgl + ' Berhasil Dikunci & Disimpan!', 'success');
+        showToast('Presensi Tgl ' + tglDasar + ' Berhasil Dikunci!', 'success');
     } else {
         showToast('Gagal menyimpan: ' + res.message, 'error');
     }
@@ -3835,72 +3828,63 @@ async function simpanProfilGuru(e) {
         }
 
         function syncKelasSiswa() {
-            const fS = document.getElementById('filter-kelas-siswa');
-            const fP = document.getElementById('filter-kelas-presensi');
-            const fN = document.getElementById('filter-kelas-nilai');
-            // FITUR BARU: Menarik dropdown Jadwal Pelajaran
-            const fJ = document.getElementById('filter-kelas-jadwal'); 
-            
-            const role = currentUser ? (currentUser.role || currentUser.jabatan) : '';
-            const isAdmin = role && (role.toLowerCase().includes('admin') || role.toLowerCase().includes('kepala'));
+    const fS = document.getElementById('filter-kelas-siswa');
+    const fP = document.getElementById('filter-kelas-presensi');
+    const fN = document.getElementById('filter-kelas-nilai');
+    const fJ = document.getElementById('filter-kelas-jadwal'); 
+    const fMP = document.getElementById('filter-mapel-presensi'); // <-- Baru
+    
+    const role = currentUser ? (currentUser.role || currentUser.jabatan) : '';
+    const isAdmin = role && (role.toLowerCase().includes('admin') || role.toLowerCase().includes('kepala'));
 
-            const opsiLengkap = `
-                <option value="Semua">Semua Kelas</option>
-                <option value="1">Kelas 1</option>
-                <option value="2">Kelas 2</option>
-                <option value="3">Kelas 3</option>
-                <option value="4">Kelas 4</option>
-                <option value="5">Kelas 5</option>
-                <option value="6">Kelas 6</option>
-            `;
-            
-            const opsiJadwal = `
-                <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
-                <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
-            `;
+    const opsiLengkap = `<option value="Semua">Semua Kelas</option><option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
+    const opsiJadwal = `<option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
 
-            if(isAdmin) {
-                if(fS) { fS.innerHTML = opsiLengkap; fS.disabled = false; }
-                if(fP) { fP.innerHTML = opsiLengkap; fP.disabled = false; }
-                if(fN) { fN.innerHTML = opsiLengkap; fN.disabled = false; }
-                if(fJ) { fJ.innerHTML = opsiJadwal; fJ.disabled = false; }
-            } else {
-                const selectJabatan = document.getElementById('select-jabatan-guru');
-                const selectKelas = document.getElementById('select-kelas-guru');
-                const j = selectJabatan ? selectJabatan.value : '';
-                const k = selectKelas ? selectKelas.value : '';
+    if(isAdmin) {
+        if(fS) { fS.innerHTML = opsiLengkap; fS.disabled = false; }
+        if(fP) { fP.innerHTML = opsiLengkap; fP.disabled = false; }
+        if(fN) { fN.innerHTML = opsiLengkap; fN.disabled = false; }
+        if(fJ) { fJ.innerHTML = opsiJadwal; fJ.disabled = false; }
+        if(fMP) { fMP.disabled = false; } // Admin bisa pantau semua absen mapel
+    } else {
+        const selectJabatan = document.getElementById('select-jabatan-guru');
+        const selectKelas = document.getElementById('select-kelas-guru');
+        const j = selectJabatan ? selectJabatan.value : '';
+        const k = selectKelas ? selectKelas.value : '';
 
-                if(j === 'Guru Kelas' && k && k !== 'Semua') {
-                    // LOGIKA 1: Jika Guru Kelas, Gembok Semua Dropdown Sesuai Kelasnya
-                    const optLocked = `<option value="${k}" selected>Kelas ${k}</option>`;
-                    if(fS) { fS.innerHTML = optLocked; fS.disabled = true; }
-                    if(fP) { fP.innerHTML = optLocked; fP.disabled = true; }
-                    if(fN) { fN.innerHTML = optLocked; fN.disabled = true; }
-                    if(fJ) { fJ.innerHTML = optLocked; fJ.disabled = true; } // Jadwal Terkunci
-                } else {
-                    // LOGIKA 2: Jika Guru Mapel (PJOK, PAI, dll), Buka Semua Dropdown
-                    if(fS) { fS.innerHTML = opsiLengkap; fS.value = k === 'Semua' || !k ? 'Semua' : k; fS.disabled = false; }
-                    if(fP) { fP.innerHTML = opsiLengkap; fP.value = k === 'Semua' || !k ? 'Semua' : k; fP.disabled = false; }
-                    if(fN) { fN.innerHTML = opsiLengkap; fN.value = k === 'Semua' || !k ? 'Semua' : k; fN.disabled = false; }
-                    if(fJ) { fJ.innerHTML = opsiJadwal; fJ.value = k === 'Semua' || !k ? '1' : k; fJ.disabled = false; } // Jadwal Bebas Pilih
-                }
-            }
-
-            // Sembunyikan Tombol Leger Jika Bukan Guru Kelas/Admin
-            const selectJabatanCek = document.getElementById('select-jabatan-guru');
-            const jabatanCek = selectJabatanCek ? selectJabatanCek.value : '';
-            const btnLeger = document.getElementById('btn-cetak-leger');
-            if (btnLeger) {
-                btnLeger.style.display = (isAdmin || jabatanCek === 'Guru Kelas') ? 'block' : 'none';
-            }
-
-            filterTabelSiswa(); filterTabelPresensi(); filterTabelNilai(); syncCPFilters();
-            
-            // Render ulang jadwal jika layar jadwal sedang aktif
-            if(typeof renderJadwal === 'function' && document.getElementById('page-jadwal-pelajaran').style.display === 'block') {
-                renderJadwal();
-            }
+        // Kunci Kelas
+        if(j === 'Guru Kelas' && k && k !== 'Semua') {
+            const optLocked = `<option value="${k}" selected>Kelas ${k}</option>`;
+            if(fS) { fS.innerHTML = optLocked; fS.disabled = true; }
+            if(fP) { fP.innerHTML = optLocked; fP.disabled = true; }
+            if(fN) { fN.innerHTML = optLocked; fN.disabled = true; }
+            if(fJ) { fJ.innerHTML = optLocked; fJ.disabled = true; }
+        } else {
+            if(fS) { fS.innerHTML = opsiLengkap; fS.value = k === 'Semua' || !k ? 'Semua' : k; fS.disabled = false; }
+            if(fP) { fP.innerHTML = opsiLengkap; fP.value = k === 'Semua' || !k ? 'Semua' : k; fP.disabled = false; }
+            if(fN) { fN.innerHTML = opsiLengkap; fN.value = k === 'Semua' || !k ? 'Semua' : k; fN.disabled = false; }
+            if(fJ) { fJ.innerHTML = opsiJadwal; fJ.value = k === 'Semua' || !k ? '1' : k; fJ.disabled = false; }
         }
+
+        // Kunci Kategori Absen Berdasarkan Mapel
+        if(fMP) {
+            if(j === 'Guru PJOK') { fMP.value = 'PJOK'; fMP.disabled = true; }
+            else if(j === 'Guru PAI') { fMP.value = 'PAI'; fMP.disabled = true; }
+            else if(j === 'Guru Bhs. Inggris') { fMP.value = 'Bahasa Inggris'; fMP.disabled = true; }
+            else if(j === 'Guru Bhs. Madura') { fMP.value = 'Bahasa Madura'; fMP.disabled = true; }
+            else if(j === 'Guru Kelas' || j.includes('Kelas')) { fMP.value = 'Umum'; fMP.disabled = true; }
+            else { fMP.disabled = false; }
+        }
+    }
+
+    const selectJabatanCek = document.getElementById('select-jabatan-guru');
+    const jabatanCek = selectJabatanCek ? selectJabatanCek.value : '';
+    const btnLeger = document.getElementById('btn-cetak-leger');
+    if (btnLeger) { btnLeger.style.display = (isAdmin || jabatanCek === 'Guru Kelas') ? 'block' : 'none'; }
+
+    filterTabelSiswa(); filterTabelPresensi(); filterTabelNilai(); syncCPFilters();
+    if(typeof renderJadwal === 'function' && document.getElementById('page-jadwal-pelajaran').style.display === 'block') { renderJadwal(); }
+}
 
         function updateMapelNilai() {
             const m = document.getElementById('select-mapel-nilai');
@@ -4439,55 +4423,47 @@ async function simpanProfilGuru(e) {
             hitungStatistikSiswa();
         }
 
-        function filterTabelPresensi() {
-            const val = document.getElementById('filter-kelas-presensi').value;
-            let no = 1; 
-            document.querySelectorAll('#body-presensi tr').forEach(r => {
-                if(val === 'Semua' || r.getAttribute('data-kelas') === val) {
-                    r.style.display = '';
-                    r.cells[0].innerText = no++; 
-                } else {
-                    r.style.display = 'none';
-                }
-            });
+    function filterTabelPresensi() {
+    const val = document.getElementById('filter-kelas-presensi').value;
+    let no = 1; 
+    document.querySelectorAll('#body-presensi tr').forEach(r => {
+        if(val === 'Semua' || r.getAttribute('data-kelas') === val) { r.style.display = ''; r.cells[0].innerText = no++; } 
+        else { r.style.display = 'none'; }
+    });
 
-            // --- LOGIKA CERDAS: MENGUNCI KELAS YANG SUDAH DIABSEN ---
-            const tgl = document.getElementById('tanggal-presensi').value;
-            const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
-            let sudahAdaAbsenDiKelasIni = false;
-            
-            document.querySelectorAll('#body-presensi tr').forEach(row => {
-                if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
-                    const nisn = row.getAttribute('data-nisn');
-                    if (dataPresensi[nisn]) sudahAdaAbsenDiKelasIni = true;
-                }
-            });
-            
-            const btnSimpan = document.getElementById('btn-simpan-presensi');
-            const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
-            
-            if (sudahAdaAbsenDiKelasIni) {
-                // KUNCI! Karena guru sudah pernah menyimpan absen di tanggal & kelas ini
-                if(btnSimpan) { btnSimpan.disabled = true; btnSimpan.innerHTML = '<i class="fas fa-lock me-1"></i> Sudah Diabsen'; }
-                if(btnInputModal) btnInputModal.disabled = true;
-                document.querySelectorAll('#body-presensi tr').forEach(row => {
-                    if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
-                        row.querySelectorAll('.radio-absen').forEach(r => r.disabled = true);
-                    }
-                });
-            } else {
-                // BUKA! Karena tanggal dan kelas ini masih bersih (belum pernah diklik Simpan)
-                if(btnSimpan) { btnSimpan.disabled = false; btnSimpan.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi'; }
-                if(btnInputModal) btnInputModal.disabled = false;
-                document.querySelectorAll('#body-presensi tr').forEach(row => {
-                    if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
-                        row.querySelectorAll('.radio-absen').forEach(r => r.disabled = false);
-                    }
-                });
-            }
-            
-            hitungPresensi();
+    const tglDasar = document.getElementById('tanggal-presensi').value;
+    const fMP = document.getElementById('filter-mapel-presensi');
+    const tipeKamar = fMP ? fMP.value : 'Umum';
+    const tgl = tipeKamar === 'Umum' ? tglDasar : tglDasar + "_" + tipeKamar;
+
+    const dataPresensi = GLOBAL_DATA.presensi[tgl] || {};
+    let sudahAdaAbsenDiKelasIni = false;
+    
+    document.querySelectorAll('#body-presensi tr').forEach(row => {
+        if(val === 'Semua' || row.getAttribute('data-kelas') === val) {
+            const nisn = row.getAttribute('data-nisn');
+            if (dataPresensi[nisn]) sudahAdaAbsenDiKelasIni = true;
         }
+    });
+    
+    const btnSimpan = document.getElementById('btn-simpan-presensi');
+    const btnInputModal = document.querySelector('button[onclick="bukaModalPresensi()"]');
+    
+    if (sudahAdaAbsenDiKelasIni) {
+        if(btnSimpan) { btnSimpan.disabled = true; btnSimpan.innerHTML = '<i class="fas fa-lock me-1"></i> Sudah Diabsen'; }
+        if(btnInputModal) btnInputModal.disabled = true;
+        document.querySelectorAll('#body-presensi tr').forEach(row => {
+            if(val === 'Semua' || row.getAttribute('data-kelas') === val) { row.querySelectorAll('.radio-absen').forEach(r => r.disabled = true); }
+        });
+    } else {
+        if(btnSimpan) { btnSimpan.disabled = false; btnSimpan.innerHTML = '<i class="fas fa-save me-1"></i> Simpan Presensi'; }
+        if(btnInputModal) btnInputModal.disabled = false;
+        document.querySelectorAll('#body-presensi tr').forEach(row => {
+            if(val === 'Semua' || row.getAttribute('data-kelas') === val) { row.querySelectorAll('.radio-absen').forEach(r => r.disabled = false); }
+        });
+    }
+    hitungPresensi();
+}
         function filterTabelNilai() {
             const val = document.getElementById('filter-kelas-nilai').value;
             let no = 1; // FITUR BARU: Variabel untuk mereset nomor urut
@@ -4545,50 +4521,55 @@ async function simpanProfilGuru(e) {
 
         // FUNGSI BARU: Menghitung Persentase Kehadiran dan Administrasi di Dashboard Guru
         function updateDashboardGuru() {
-            if (!currentUser || currentUser.role === 'Admin') return;
-            
-            const today = getTanggalHariIni();
-            const presensiToday = GLOBAL_DATA.presensi[today] || {};
-            const kBase = document.getElementById('select-kelas-guru') ? document.getElementById('select-kelas-guru').value : 'Semua';
-            
-            let totalSiswa = 0, totalHadir = 0;
-            
-            (GLOBAL_DATA.siswa || []).forEach(s => {
-                const k = s.kelas.replace('Kelas ', '');
-                if (kBase === 'Semua' || kBase === k) {
-                    totalSiswa++;
-                    if (presensiToday[s.nisn] === 'H') totalHadir++;
-                }
-            });
-            
-            // Hitung % Kehadiran
-            const persenHadir = totalSiswa > 0 ? Math.round((totalHadir / totalSiswa) * 100) : 0;
-            const elHadir = document.querySelector('#page-guru-dashboard .border-success h2');
-            if (elHadir) elHadir.innerHTML = `${persenHadir}<span class="fs-6 text-muted fw-normal">%</span>`;
+    if (!currentUser || currentUser.role === 'Admin') return;
+    
+    const todayDasar = getTanggalHariIni();
+    const jSelect = document.getElementById('select-jabatan-guru');
+    const j = jSelect ? jSelect.value : '';
+    let tipeKamar = 'Umum';
+    if(j === 'Guru PJOK') tipeKamar = 'PJOK';
+    else if(j === 'Guru PAI') tipeKamar = 'PAI';
+    else if(j === 'Guru Bhs. Inggris') tipeKamar = 'Bahasa Inggris';
+    else if(j === 'Guru Bhs. Madura') tipeKamar = 'Bahasa Madura';
 
-            // Hitung % Status Administrasi
-            let poinAdmin = 0;
-            if (totalSiswa > 0) poinAdmin++; // Ada Siswa
-            if (Object.keys(presensiToday).length > 0) poinAdmin++; // Sudah ngabsen hari ini
-            
-            let kunciCari = kBase === 'Semua' ? '' : `_${kBase}`;
-            const hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari));
-            if (hasNilai) poinAdmin++; // Sudah isi Nilai
-            
-            const hasProta = (GLOBAL_DATA.prota || []).length > 0;
-            if (hasProta) poinAdmin++; // Sudah buat Prota
-            
-            const persenAdmin = Math.round((poinAdmin / 4) * 100);
-            const elAdmin = document.querySelector('#page-guru-dashboard .border-warning h2');
-            if (elAdmin) elAdmin.innerHTML = `${persenAdmin}<span class="fs-6 text-muted fw-normal">%</span>`;
-
-            // Update Grafik Guru
-            if (typeof guruChartInstance !== 'undefined' && guruChartInstance !== null) {
-                guruChartInstance.data.datasets[0].data = [persenHadir, persenHadir, 0, 0];
-                guruChartInstance.data.datasets[1].data = [persenAdmin, persenAdmin, 0, 0];
-                guruChartInstance.update();
-            }
+    const today = tipeKamar === 'Umum' ? todayDasar : todayDasar + "_" + tipeKamar;
+    const presensiToday = GLOBAL_DATA.presensi[today] || {};
+    const kBase = document.getElementById('select-kelas-guru') ? document.getElementById('select-kelas-guru').value : 'Semua';
+    
+    let totalSiswa = 0, totalHadir = 0;
+    (GLOBAL_DATA.siswa || []).forEach(s => {
+        const k = s.kelas.replace('Kelas ', '');
+        if (kBase === 'Semua' || kBase === k) {
+            totalSiswa++;
+            if (presensiToday[s.nisn] === 'H') totalHadir++;
         }
+    });
+    
+    const persenHadir = totalSiswa > 0 ? Math.round((totalHadir / totalSiswa) * 100) : 0;
+    const elHadir = document.querySelector('#page-guru-dashboard .border-success h2');
+    if (elHadir) elHadir.innerHTML = `${persenHadir}<span class="fs-6 text-muted fw-normal">%</span>`;
+
+    let poinAdmin = 0;
+    if (totalSiswa > 0) poinAdmin++; 
+    if (Object.keys(presensiToday).length > 0) poinAdmin++; 
+    
+    let kunciCari = kBase === 'Semua' ? '' : `_${kBase}`;
+    const hasNilai = Object.keys(GLOBAL_DATA.nilai || {}).some(k => k.includes(kunciCari));
+    if (hasNilai) poinAdmin++; 
+    
+    const hasProta = (GLOBAL_DATA.prota || []).length > 0;
+    if (hasProta) poinAdmin++; 
+    
+    const persenAdmin = Math.round((poinAdmin / 4) * 100);
+    const elAdmin = document.querySelector('#page-guru-dashboard .border-warning h2');
+    if (elAdmin) elAdmin.innerHTML = `${persenAdmin}<span class="fs-6 text-muted fw-normal">%</span>`;
+
+    if (typeof guruChartInstance !== 'undefined' && guruChartInstance !== null) {
+        guruChartInstance.data.datasets[0].data = [persenHadir, persenHadir, 0, 0];
+        guruChartInstance.data.datasets[1].data = [persenAdmin, persenAdmin, 0, 0];
+        guruChartInstance.update();
+    }
+}
 
         function hitungPresensi() {
             let H=0,S=0,I=0,A=0, vis=0;
