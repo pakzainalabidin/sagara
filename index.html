@@ -3733,9 +3733,9 @@ async function simpanProfilGuru(e) {
             const keyBaru = `${mapel}_${smt}_${fKelas}`;
             const keyLama = `${mapel}_${fKelas}`; // Kunci data lama sebelum ada semester
             
-            // LOGIKA PENYELAMAT: Coba muat data baru, jika kosong, muat data lama!
+            // LOGIKA PENYELAMAT: Wariskan data lama HANYA untuk semester Ganjil
             let dataNilai = GLOBAL_DATA.nilai[keyBaru];
-            if (!dataNilai && GLOBAL_DATA.nilai[keyLama]) {
+            if (!dataNilai && smt === 'Ganjil' && GLOBAL_DATA.nilai[keyLama]) {
                 dataNilai = GLOBAL_DATA.nilai[keyLama];
             } else if (!dataNilai) {
                 dataNilai = {};
@@ -4945,7 +4945,7 @@ async function simpanProfilGuru(e) {
                 const keyBaru = `${mapelUtama}_${smt}_${fKelas}`;
                 const keyLama = `${mapelUtama}_${fKelas}`;
                 let dn = GLOBAL_DATA.nilai[keyBaru];
-                if (!dn && GLOBAL_DATA.nilai[keyLama]) dn = GLOBAL_DATA.nilai[keyLama];
+                if (!dn && smt === 'Ganjil' && GLOBAL_DATA.nilai[keyLama]) dn = GLOBAL_DATA.nilai[keyLama];
                 else if (!dn) dn = {};
 
                 siswaKelas.forEach(s => {
@@ -4993,7 +4993,7 @@ async function simpanProfilGuru(e) {
                         const keyBaru = `${m}_${smt}_${fKelas}`;
                         const keyLama = `${m}_${fKelas}`;
                         let dn = GLOBAL_DATA.nilai[keyBaru];
-                        if (!dn && GLOBAL_DATA.nilai[keyLama]) dn = GLOBAL_DATA.nilai[keyLama];
+                        if (!dn && smt === 'Ganjil' && GLOBAL_DATA.nilai[keyLama]) dn = GLOBAL_DATA.nilai[keyLama];
                         else if (!dn) dn = {};
                         
                         let rataMapel = 0;
