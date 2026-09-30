@@ -1489,7 +1489,12 @@ if (action === 'deletePesanBanyak') {
                             <h5 class="fw-bold mb-0"><i class="fas fa-calendar-week text-warning me-2"></i>Program Semester (Prosem)</h5>
                             <div class="mt-2 mt-md-0 d-flex gap-2">
                                 <!-- Filter Mapel Prosem -->
-                                <select class="form-select form-select-sm border-warning" id="filter-mapel-prosem" style="min-width: 150px;" onchange="renderProsem()"></select>
+                                <!-- Tambahkan ini juga di sebelah filter-mapel-prosem (di dalam page-prosem) -->
+<select class="form-select form-select-sm border-success" id="filter-kelas-prosem" style="min-width: 110px;" onchange="renderProsem()">
+    <option value="Semua">Semua Kelas</option>
+    <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
+    <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
+</select>
                                 <button class="btn btn-sm btn-danger" onclick="exportProsem_PDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
                             </div>
                         </div>
@@ -1538,7 +1543,11 @@ if (action === 'deletePesanBanyak') {
                             <h5 class="fw-bold mb-0"><i class="fas fa-calendar text-danger me-2"></i>Program Tahunan (Prota)</h5>
                             <div class="mt-2 mt-md-0 d-flex gap-2">
                                 <!-- Filter Mapel Prota -->
-                                <select class="form-select form-select-sm border-danger" id="filter-mapel-prota" style="min-width: 150px;" onchange="renderProta()"></select>
+                                <select class="form-select form-select-sm border-success" id="filter-kelas-prota" style="min-width: 110px;" onchange="renderProta()">
+    <option value="Semua">Semua Kelas</option>
+    <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
+    <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
+</select>
                                 <button class="btn btn-sm btn-danger" onclick="exportProta_PDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
                                 <button class="btn btn-sm btn-primary" onclick="bukaModalProta()"><i class="fas fa-plus"></i> Tambah Prota</button>
                                 <button class="btn btn-sm btn-success" onclick="simpanProtaKeServer()"><i class="fas fa-save"></i> Simpan Permanen</button>
@@ -1918,25 +1927,29 @@ if (action === 'deletePesanBanyak') {
                 </div>
                 <div class="modal-body p-4 text-start text-dark">
                     <div class="row mb-3">
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Semester</label>
-                            <select class="form-select" id="input-modal-prota-semester">
-                                <option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Mata Pelajaran</label>
-                            <select class="form-select border-primary" id="input-modal-prota-mapel"></select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Tanggal</label>
-                            <input type="date" class="form-control" id="input-modal-prota-tgl" onchange="updateBulanOtomatisProta()">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small fw-bold">Bulan Pelaksanaan</label>
-                            <input type="text" class="form-control bg-light" id="input-modal-prota-bulan" readonly>
-                        </div>
-                    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">Semester</label>
+        <select class="form-select" id="input-modal-prota-semester">
+            <option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">Kelas</label>
+        <!-- FITUR BARU: Input Kelas untuk Prota -->
+        <select class="form-select border-success" id="input-modal-prota-kelas">
+            <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
+            <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">Mata Pelajaran</label>
+        <select class="form-select border-primary" id="input-modal-prota-mapel"></select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small fw-bold">Bulan Pelaksanaan</label>
+        <input type="text" class="form-control bg-light" id="input-modal-prota-bulan" readonly>
+    </div>
+</div>
                     <div class="row mb-3">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Bab</label>
@@ -3843,63 +3856,81 @@ async function simpanProfilGuru(e) {
         }
 
         function syncKelasSiswa() {
-    const fS = document.getElementById('filter-kelas-siswa');
-    const fP = document.getElementById('filter-kelas-presensi');
-    const fN = document.getElementById('filter-kelas-nilai');
-    const fJ = document.getElementById('filter-kelas-jadwal'); 
-    const fMP = document.getElementById('filter-mapel-presensi'); // <-- Baru
-    
-    const role = currentUser ? (currentUser.role || currentUser.jabatan) : '';
-    const isAdmin = role && (role.toLowerCase().includes('admin') || role.toLowerCase().includes('kepala'));
+            const fS = document.getElementById('filter-kelas-siswa');
+            const fP = document.getElementById('filter-kelas-presensi');
+            const fN = document.getElementById('filter-kelas-nilai');
+            const fJ = document.getElementById('filter-kelas-jadwal'); 
+            const fMP = document.getElementById('filter-mapel-presensi');
+            
+            // --- FITUR BARU: Tambahan elemen filter Prota & Prosem ---
+            const fProta = document.getElementById('filter-kelas-prota');
+            const fProsem = document.getElementById('filter-kelas-prosem');
+            
+            const role = currentUser ? (currentUser.role || currentUser.jabatan) : '';
+            const isAdmin = role && (role.toLowerCase().includes('admin') || role.toLowerCase().includes('kepala'));
 
-    const opsiLengkap = `<option value="Semua">Semua Kelas</option><option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
-    const opsiJadwal = `<option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
+            const opsiLengkap = `<option value="Semua">Semua Kelas</option><option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
+            const opsiJadwal = `<option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
 
-    if(isAdmin) {
-        if(fS) { fS.innerHTML = opsiLengkap; fS.disabled = false; }
-        if(fP) { fP.innerHTML = opsiLengkap; fP.disabled = false; }
-        if(fN) { fN.innerHTML = opsiLengkap; fN.disabled = false; }
-        if(fJ) { fJ.innerHTML = opsiJadwal; fJ.disabled = false; }
-        if(fMP) { fMP.disabled = false; } // Admin bisa pantau semua absen mapel
-    } else {
-        const selectJabatan = document.getElementById('select-jabatan-guru');
-        const selectKelas = document.getElementById('select-kelas-guru');
-        const j = selectJabatan ? selectJabatan.value : '';
-        const k = selectKelas ? selectKelas.value : '';
+            if(isAdmin) {
+                // Untuk Admin: Semua dropdown kelas terbuka penuh
+                if(fS) { fS.innerHTML = opsiLengkap; fS.disabled = false; }
+                if(fP) { fP.innerHTML = opsiLengkap; fP.disabled = false; }
+                if(fN) { fN.innerHTML = opsiLengkap; fN.disabled = false; }
+                if(fJ) { fJ.innerHTML = opsiJadwal; fJ.disabled = false; }
+                if(fMP) { fMP.disabled = false; } 
+                
+                // Buka Kunci Prota & Prosem untuk Admin
+                if(fProta) { fProta.innerHTML = opsiLengkap; fProta.disabled = false; }
+                if(fProsem) { fProsem.innerHTML = opsiLengkap; fProsem.disabled = false; }
+            } else {
+                const selectJabatan = document.getElementById('select-jabatan-guru');
+                const selectKelas = document.getElementById('select-kelas-guru');
+                const j = selectJabatan ? selectJabatan.value : '';
+                const k = selectKelas ? selectKelas.value : '';
 
-        // Kunci Kelas
-        if(j === 'Guru Kelas' && k && k !== 'Semua') {
-            const optLocked = `<option value="${k}" selected>Kelas ${k}</option>`;
-            if(fS) { fS.innerHTML = optLocked; fS.disabled = true; }
-            if(fP) { fP.innerHTML = optLocked; fP.disabled = true; }
-            if(fN) { fN.innerHTML = optLocked; fN.disabled = true; }
-            if(fJ) { fJ.innerHTML = optLocked; fJ.disabled = true; }
-        } else {
-            if(fS) { fS.innerHTML = opsiLengkap; fS.value = k === 'Semua' || !k ? 'Semua' : k; fS.disabled = false; }
-            if(fP) { fP.innerHTML = opsiLengkap; fP.value = k === 'Semua' || !k ? 'Semua' : k; fP.disabled = false; }
-            if(fN) { fN.innerHTML = opsiLengkap; fN.value = k === 'Semua' || !k ? 'Semua' : k; fN.disabled = false; }
-            if(fJ) { fJ.innerHTML = opsiJadwal; fJ.value = k === 'Semua' || !k ? '1' : k; fJ.disabled = false; }
+                // Kunci Kelas Khusus untuk Guru Kelas
+                if(j === 'Guru Kelas' && k && k !== 'Semua') {
+                    const optLocked = `<option value="${k}" selected>Kelas ${k}</option>`;
+                    if(fS) { fS.innerHTML = optLocked; fS.disabled = true; }
+                    if(fP) { fP.innerHTML = optLocked; fP.disabled = true; }
+                    if(fN) { fN.innerHTML = optLocked; fN.disabled = true; }
+                    if(fJ) { fJ.innerHTML = optLocked; fJ.disabled = true; }
+                    
+                    // --- FITUR BARU: Kunci dropdown Prota & Prosem khusus untuk Guru Kelas ---
+                    if(fProta) { fProta.innerHTML = optLocked; fProta.disabled = true; }
+                    if(fProsem) { fProsem.innerHTML = optLocked; fProsem.disabled = true; }
+                } else {
+                    // Terbuka untuk Guru Mapel (PJOK, PAI, dll)
+                    if(fS) { fS.innerHTML = opsiLengkap; fS.value = k === 'Semua' || !k ? 'Semua' : k; fS.disabled = false; }
+                    if(fP) { fP.innerHTML = opsiLengkap; fP.value = k === 'Semua' || !k ? 'Semua' : k; fP.disabled = false; }
+                    if(fN) { fN.innerHTML = opsiLengkap; fN.value = k === 'Semua' || !k ? 'Semua' : k; fN.disabled = false; }
+                    if(fJ) { fJ.innerHTML = opsiJadwal; fJ.value = k === 'Semua' || !k ? '1' : k; fJ.disabled = false; }
+                    
+                    // --- FITUR BARU: Buka dropdown Prota & Prosem untuk Guru Mapel ---
+                    if(fProta) { fProta.innerHTML = opsiLengkap; fProta.value = k === 'Semua' || !k ? 'Semua' : k; fProta.disabled = false; }
+                    if(fProsem) { fProsem.innerHTML = opsiLengkap; fProsem.value = k === 'Semua' || !k ? 'Semua' : k; fProsem.disabled = false; }
+                }
+
+                // Kunci Kategori Absen Berdasarkan Mapel
+                if(fMP) {
+                    if(j === 'Guru PJOK') { fMP.value = 'PJOK'; fMP.disabled = true; }
+                    else if(j === 'Guru PAI') { fMP.value = 'PAI'; fMP.disabled = true; }
+                    else if(j === 'Guru Bhs. Inggris') { fMP.value = 'Bahasa Inggris'; fMP.disabled = true; }
+                    else if(j === 'Guru Bhs. Madura') { fMP.value = 'Bahasa Madura'; fMP.disabled = true; }
+                    else if(j === 'Guru Kelas' || j.includes('Kelas')) { fMP.value = 'Umum'; fMP.disabled = true; }
+                    else { fMP.disabled = false; }
+                }
+            }
+
+            const selectJabatanCek = document.getElementById('select-jabatan-guru');
+            const jabatanCek = selectJabatanCek ? selectJabatanCek.value : '';
+            const btnLeger = document.getElementById('btn-cetak-leger');
+            if (btnLeger) { btnLeger.style.display = (isAdmin || jabatanCek === 'Guru Kelas') ? 'block' : 'none'; }
+
+            filterTabelSiswa(); filterTabelPresensi(); filterTabelNilai(); syncCPFilters();
+            if(typeof renderJadwal === 'function' && document.getElementById('page-jadwal-pelajaran').style.display === 'block') { renderJadwal(); }
         }
-
-        // Kunci Kategori Absen Berdasarkan Mapel
-        if(fMP) {
-            if(j === 'Guru PJOK') { fMP.value = 'PJOK'; fMP.disabled = true; }
-            else if(j === 'Guru PAI') { fMP.value = 'PAI'; fMP.disabled = true; }
-            else if(j === 'Guru Bhs. Inggris') { fMP.value = 'Bahasa Inggris'; fMP.disabled = true; }
-            else if(j === 'Guru Bhs. Madura') { fMP.value = 'Bahasa Madura'; fMP.disabled = true; }
-            else if(j === 'Guru Kelas' || j.includes('Kelas')) { fMP.value = 'Umum'; fMP.disabled = true; }
-            else { fMP.disabled = false; }
-        }
-    }
-
-    const selectJabatanCek = document.getElementById('select-jabatan-guru');
-    const jabatanCek = selectJabatanCek ? selectJabatanCek.value : '';
-    const btnLeger = document.getElementById('btn-cetak-leger');
-    if (btnLeger) { btnLeger.style.display = (isAdmin || jabatanCek === 'Guru Kelas') ? 'block' : 'none'; }
-
-    filterTabelSiswa(); filterTabelPresensi(); filterTabelNilai(); syncCPFilters();
-    if(typeof renderJadwal === 'function' && document.getElementById('page-jadwal-pelajaran').style.display === 'block') { renderJadwal(); }
-}
 
         function updateMapelNilai() {
             const m = document.getElementById('select-mapel-nilai');
@@ -6206,6 +6237,7 @@ async function simpanJurnalKeServer() {
         // 1. Fungsi PopUp: Menambah data ke tabel sementara di layar
 function simpanProtaModal() {
     const smt = document.getElementById('input-modal-prota-semester').value;
+    const kelasVal = document.getElementById('input-modal-prota-kelas').value; // Ambil nilai kelas
     const mapel = document.getElementById('input-modal-prota-mapel').value;
     const tglVal = document.getElementById('input-modal-prota-tgl').value;
     const bab = document.getElementById('input-modal-prota-bab').value;
@@ -6223,11 +6255,14 @@ function simpanProtaModal() {
     if(!GLOBAL_DATA.prota) GLOBAL_DATA.prota = [];
     GLOBAL_DATA.prota.push({
         id: 'prt_' + Date.now(),
-        smt: smt, mapel: mapel, tgl: formatTanggalIndo(tglVal), bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
+        smt: smt, 
+        kelas: kelasVal, // Simpan identitas kelas
+        mapel: mapel, 
+        tgl: formatTanggalIndo(tglVal), 
+        bab: bab, materi: materi, tp: tp, bln: bln, mgg: mgg, hr: hr, jp: jp
     });
 
     renderProta(); renderProsem(); tutupModalProta();
-    // Beri tahu guru untuk mengklik tombol hijau
     showToast('Tersimpan di Tabel! JANGAN LUPA KLIK "Simpan Permanen" di atas.', 'info'); 
 }
 
@@ -6255,34 +6290,55 @@ async function simpanProtaKeServer() {
 
         function renderProta() {
             const tbody = document.getElementById('body-prota');
-            const filterEl = document.getElementById('filter-mapel-prota');
-            const selectedMapel = filterEl ? filterEl.value : 'Semua';
+            
+            // Mengambil elemen filter mapel dan filter kelas
+            const filterMapelEl = document.getElementById('filter-mapel-prota');
+            const filterKelasEl = document.getElementById('filter-kelas-prota'); 
 
-            if(!tbody) return; tbody.innerHTML = '';
+            // Mengambil nilai pilihan saat ini
+            const selectedMapel = filterMapelEl ? filterMapelEl.value : 'Semua';
+            const selectedKelas = filterKelasEl ? filterKelasEl.value : 'Semua';
+
+            if(!tbody) return; 
+            tbody.innerHTML = '';
             
             let count = 0;
             (GLOBAL_DATA.prota || []).forEach(p => {
-                // Logika Filter Mapel
-                if(selectedMapel !== 'Semua' && selectedMapel !== '' && p.mapel !== selectedMapel) return;
-                count++;
+                // 1. Logika Filter Mata Pelajaran
+                if(selectedMapel !== 'Semua' && selectedMapel !== '' && (p.mapel || '-') !== selectedMapel) return;
+                
+                // 2. Logika Filter Kelas
+                // (Jika p.kelas kosong/data lama, kita anggap kelas 1 sebagai default agar tidak error)
+                const pKelas = p.kelas || '1'; 
+                if(selectedKelas !== 'Semua' && selectedKelas !== '' && pKelas !== selectedKelas) return;
 
+                count++;
                 const tr = document.createElement('tr');
+                
+                // Memasukkan badge indikator kelas tepat di bawah teks Mata Pelajaran
                 tr.innerHTML = `
                     <td><span class="badge bg-danger bg-opacity-10 text-danger border border-danger">${p.smt}</span></td>
-                    <td class="fw-bold text-primary">${p.mapel || '-'}</td>
-                    <td class="text-start" style="white-space: nowrap;">${p.tgl}</td>
-                    <td class="fw-bold">${p.bab}</td>
-                    <td class="text-start">${p.materi}</td>
-                    <td class="text-start">${p.tp}</td>
-                    <td><span class="fw-bold text-secondary">${p.bln}</span></td>
-                    <td>${p.mgg}</td>
-                    <td>${p.hr}</td>
-                    <td class="fw-bold text-danger">${p.jp || '-'}</td>
-                    <td class="admin-action"><button class="btn btn-sm btn-light text-danger shadow-sm" onclick="hapusProta('${p.id}')"><i class="fas fa-trash"></i></button></td>
+                    <td class="fw-bold text-primary align-middle">
+                        ${p.mapel || '-'} <br>
+                        <span class="badge bg-success mt-1" style="font-size: 0.65rem;">Kls ${pKelas}</span>
+                    </td>
+                    <td class="text-start align-middle" style="white-space: nowrap;">${p.tgl}</td>
+                    <td class="fw-bold align-middle">${p.bab}</td>
+                    <td class="text-start align-middle">${p.materi}</td>
+                    <td class="text-start align-middle">${p.tp}</td>
+                    <td class="align-middle"><span class="fw-bold text-secondary">${p.bln}</span></td>
+                    <td class="align-middle">${p.mgg}</td>
+                    <td class="align-middle">${p.hr}</td>
+                    <td class="fw-bold text-danger align-middle">${p.jp || '-'}</td>
+                    <td class="admin-action align-middle"><button class="btn btn-sm btn-light text-danger shadow-sm" onclick="hapusProta('${p.id}')"><i class="fas fa-trash"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
-            if(count === 0) tbody.innerHTML = '<tr><td colspan="11" class="text-muted py-4">Belum ada data Program Tahunan.</td></tr>';
+            
+            // Pesan jika data kosong setelah difilter
+            if(count === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-muted py-4">Belum ada data Program Tahunan sesuai filter kelas/mapel.</td></tr>';
+            }
         }
 
         async function hapusProta(id) {
@@ -6310,26 +6366,42 @@ async function simpanProtaKeServer() {
         function renderProsem() {
             const bGanjil = document.getElementById('body-prosem-ganjil');
             const bGenap = document.getElementById('body-prosem-genap');
-            const filterEl = document.getElementById('filter-mapel-prosem');
-            const selectedMapel = filterEl ? filterEl.value : 'Semua';
+            
+            // Mengambil elemen filter mapel dan filter kelas
+            const filterMapelEl = document.getElementById('filter-mapel-prosem');
+            const filterKelasEl = document.getElementById('filter-kelas-prosem');
+
+            // Mengambil nilai pilihan saat ini
+            const selectedMapel = filterMapelEl ? filterMapelEl.value : 'Semua';
+            const selectedKelas = filterKelasEl ? filterKelasEl.value : 'Semua';
 
             if(!bGanjil || !bGenap) return;
-            bGanjil.innerHTML = ''; bGenap.innerHTML = '';
+            bGanjil.innerHTML = ''; 
+            bGenap.innerHTML = '';
 
             let cGanjil = 0, cGenap = 0;
             (GLOBAL_DATA.prota || []).forEach(p => {
-                // Logika Filter Mapel
+                // 1. Logika Filter Mata Pelajaran
                 if(selectedMapel !== 'Semua' && selectedMapel !== '' && p.mapel !== selectedMapel) return;
+                
+                // 2. Logika Filter Kelas
+                const pKelas = p.kelas || '1'; 
+                if(selectedKelas !== 'Semua' && selectedKelas !== '' && pKelas !== selectedKelas) return;
 
                 const tr = document.createElement('tr');
                 let cellBulan = '';
+                
+                // Desain HTML untuk kolom Mapel yang disisipi indikator Kelas
+                const mapelHtml = `
+                    <div class="fw-bold text-primary">${p.mapel || '-'}</div>
+                    <span class="badge bg-success mt-1" style="font-size: 0.65rem;">Kls ${pKelas}</span>
+                `;
                 
                 if(p.smt === 'Ganjil') {
                     cGanjil++;
                     const mGanjil = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
                     mGanjil.forEach(m => {
                         if(p.bln === m) {
-                            // FITUR BARU: Menambahkan Hari & Tanggal (p.tgl)
                             cellBulan += `<td class="bg-primary bg-opacity-10 align-middle" style="min-width: 120px;">
                                 <div class="text-dark fw-bold mb-1" style="font-size: 0.75rem; line-height: 1.2;">${p.tgl || '-'}</div>
                                 <span class="badge bg-primary shadow-sm">${p.mgg}</span> 
@@ -6339,14 +6411,13 @@ async function simpanProtaKeServer() {
                             cellBulan += `<td></td>`;
                         }
                     });
-                    tr.innerHTML = `<td class="fw-bold text-primary">${p.mapel || '-'}</td><td class="fw-bold">${p.bab}</td><td class="text-start">${p.materi}</td><td class="text-start">${p.tp}</td><td class="fw-bold text-danger">${p.jp || '-'}</td>${cellBulan}`;
+                    tr.innerHTML = `<td class="align-middle">${mapelHtml}</td><td class="fw-bold align-middle">${p.bab}</td><td class="text-start align-middle">${p.materi}</td><td class="text-start align-middle">${p.tp}</td><td class="fw-bold text-danger align-middle">${p.jp || '-'}</td>${cellBulan}`;
                     bGanjil.appendChild(tr);
                 } else {
                     cGenap++;
                     const mGenap = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
                     mGenap.forEach(m => {
                         if(p.bln === m) {
-                            // FITUR BARU: Menambahkan Hari & Tanggal (p.tgl)
                             cellBulan += `<td class="bg-success bg-opacity-10 align-middle" style="min-width: 120px;">
                                 <div class="text-dark fw-bold mb-1" style="font-size: 0.75rem; line-height: 1.2;">${p.tgl || '-'}</div>
                                 <span class="badge bg-success shadow-sm">${p.mgg}</span> 
@@ -6356,13 +6427,13 @@ async function simpanProtaKeServer() {
                             cellBulan += `<td></td>`;
                         }
                     });
-                    tr.innerHTML = `<td class="fw-bold text-primary">${p.mapel || '-'}</td><td class="fw-bold">${p.bab}</td><td class="text-start">${p.materi}</td><td class="text-start">${p.tp}</td><td class="fw-bold text-danger">${p.jp || '-'}</td>${cellBulan}`;
+                    tr.innerHTML = `<td class="align-middle">${mapelHtml}</td><td class="fw-bold align-middle">${p.bab}</td><td class="text-start align-middle">${p.materi}</td><td class="text-start align-middle">${p.tp}</td><td class="fw-bold text-danger align-middle">${p.jp || '-'}</td>${cellBulan}`;
                     bGenap.appendChild(tr);
                 }
             });
 
-            if(cGanjil === 0) bGanjil.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Ganjil.</td></tr>';
-            if(cGenap === 0) bGenap.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Genap.</td></tr>';
+            if(cGanjil === 0) bGanjil.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Ganjil sesuai filter.</td></tr>';
+            if(cGenap === 0) bGenap.innerHTML = '<tr><td colspan="11" class="text-muted py-3">Belum ada data Semester Genap sesuai filter.</td></tr>';
         }
 
         // ==========================================
