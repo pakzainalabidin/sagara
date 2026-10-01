@@ -1545,52 +1545,60 @@ if (action === 'deletePesanBanyak') {
                 </div>
               <div id="page-prota" class="page-content" style="display: none;"> 
                     <div class="card-panel border-0 shadow-sm">
-                        <div class="d-flex align-items-center justify-content-between mb-4">
-    <h5 class="fw-bold mb-0 text-nowrap me-3"><i class="fas fa-calendar text-danger me-2"></i>Program Tahunan (Prota)</h5>
+                        <div class="d-flex align-items-center justify-content-between mb-3 gap-2">
+    <!-- Judul dikembalikan, ukuran font disesuaikan agar tidak memakan tempat -->
+    <h6 class="fw-bold mb-0 text-nowrap m-0" style="font-size: 1.05rem;">
+        <i class="fas fa-calendar text-danger me-2"></i>Program Tahunan (Prota)
+    </h6>
     
     <div class="d-flex align-items-center gap-2 flex-nowrap" style="overflow-x: auto; padding-bottom: 5px;">
-        <!-- FITUR BARU: Filter Mata Pelajaran -->
-        <select class="form-select form-select-sm border-primary flex-shrink-0" id="filter-mapel-prota" style="width: 140px;" onchange="renderProta()">
+        <!-- Lebar select diperkecil sedikit agar muat 1 layar -->
+        <select class="form-select form-select-sm border-danger flex-shrink-0 fw-bold text-danger" id="filter-semester-prota" style="width: 85px;" onchange="renderProta()">
+            <option value="Semua">Smt All</option>
+            <option value="Ganjil">Ganjil</option>
+            <option value="Genap">Genap</option>
+        </select>
+
+        <select class="form-select form-select-sm border-primary flex-shrink-0" id="filter-mapel-prota" style="width: 110px;" onchange="renderProta()">
             <option value="Semua">Semua Mapel</option>
         </select>
 
-        <!-- Filter Kelas -->
-        <select class="form-select form-select-sm border-success flex-shrink-0" id="filter-kelas-prota" style="width: 110px;" onchange="renderProta()">
-            <option value="Semua">Semua Kelas</option>
+        <select class="form-select form-select-sm border-success flex-shrink-0" id="filter-kelas-prota" style="width: 100px;" onchange="renderProta()">
+            <option value="Semua">Semua Kls</option>
             <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
             <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
         </select>
         
-        <button class="btn btn-sm btn-danger flex-shrink-0" onclick="exportProta_PDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
-        <button class="btn btn-sm btn-primary flex-shrink-0" onclick="bukaModalProta()"><i class="fas fa-plus"></i> Tambah Prota</button>
-        <button class="btn btn-sm btn-success flex-shrink-0" onclick="simpanProtaKeServer()"><i class="fas fa-save"></i> Simpan Permanen</button>
-        <button class="btn btn-sm btn-danger flex-shrink-0" onclick="hapusSemuaProta()"><i class="fas fa-trash-alt"></i> Bersihkan Semua</button>
+        <button class="btn btn-sm btn-danger flex-shrink-0" onclick="exportProta_PDF()" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn btn-sm btn-primary flex-shrink-0" onclick="bukaModalProta()"><i class="fas fa-plus"></i> Tambah</button>
+        <button class="btn btn-sm btn-success flex-shrink-0" onclick="simpanProtaKeServer()"><i class="fas fa-save"></i> Simpan</button>
+        <button class="btn btn-sm btn-outline-danger flex-shrink-0" onclick="hapusSemuaProta()" title="Bersihkan Data"><i class="fas fa-trash-alt"></i></button>
     </div>
 </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-hover small text-center align-middle" id="tabel-prota">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th rowspan="2" class="align-middle">Semester</th>
-                                        <th rowspan="2" class="align-middle">Mapel</th>
-                                        <th rowspan="2" class="align-middle" style="min-width: 130px;">Hari, Tanggal</th>
-                                        <th rowspan="2" class="align-middle">Bab</th>
-                                        <th rowspan="2" class="align-middle">Materi</th>
-                                        <th rowspan="2" class="align-middle" style="min-width: 200px;">Tujuan Pembelajaran</th>
-                                        <th rowspan="2" class="align-middle">Bulan</th>
-                                        <th colspan="3">Alokasi Waktu</th>
-                                        <th rowspan="2" class="align-middle" style="width: 50px;">Aksi</th>
-                                    </tr>
-                                    <tr>
-                                        <th style="width: 80px;">Minggu</th>
-                                        <th style="width: 80px;">Hari</th>
-                                        <th style="width: 60px;">Jml JP</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="body-prota">
-                                </tbody>
-                            </table>
-                        </div>
+                       <div class="table-responsive">
+    <table class="table table-bordered table-hover text-center align-middle" id="tabel-prota" style="font-size: 0.75rem;">
+        <thead class="table-light">
+            <tr>
+                <th rowspan="2" class="align-middle" style="width: 50px;">Smt</th>
+                <th rowspan="2" class="align-middle" style="width: 90px;">Mapel</th>
+                <th rowspan="2" class="align-middle" style="width: 90px;">Tanggal</th>
+                <th rowspan="2" class="align-middle" style="width: 60px;">Bab</th>
+                <th rowspan="2" class="align-middle" style="width: 120px;">Materi</th>
+                <th rowspan="2" class="align-middle" style="min-width: 150px;">Tujuan Pembelajaran</th>
+                <th rowspan="2" class="align-middle" style="width: 60px;">Bulan</th>
+                <th colspan="3">Waktu</th>
+                <th rowspan="2" class="align-middle" style="width: 40px;">Aksi</th>
+            </tr>
+            <tr>
+                <th style="width: 40px;" title="Minggu">Mgg</th>
+                <th style="width: 40px;" title="Hari">Hr</th>
+                <th style="width: 40px;" title="Jam Pelajaran">JP</th>
+            </tr>
+        </thead>
+        <tbody id="body-prota">
+        </tbody>
+    </table>
+</div>
                     </div> 
                 </div>
                 <div id="page-ai-modul" class="page-content" style="display: none;">
@@ -6358,11 +6366,13 @@ async function simpanProtaKeServer() {
         function renderProta() {
             const tbody = document.getElementById('body-prota');
             
-            // Mengambil elemen filter mapel dan filter kelas
+            // Tarik elemen filter baru
+            const filterSemesterEl = document.getElementById('filter-semester-prota');
             const filterMapelEl = document.getElementById('filter-mapel-prota');
             const filterKelasEl = document.getElementById('filter-kelas-prota'); 
 
-            // Mengambil nilai pilihan saat ini
+            // Tarik nilai pilihan saat ini
+            const selectedSemester = filterSemesterEl ? filterSemesterEl.value : 'Semua';
             const selectedMapel = filterMapelEl ? filterMapelEl.value : 'Semua';
             const selectedKelas = filterKelasEl ? filterKelasEl.value : 'Semua';
 
@@ -6371,40 +6381,44 @@ async function simpanProtaKeServer() {
             
             let count = 0;
             (GLOBAL_DATA.prota || []).forEach(p => {
-                // 1. Logika Filter Mata Pelajaran
+                // 1. Logika Filter Semester
+                if(selectedSemester !== 'Semua' && p.smt !== selectedSemester) return;
+
+                // 2. Logika Filter Mata Pelajaran
                 if(selectedMapel !== 'Semua' && selectedMapel !== '' && (p.mapel || '-') !== selectedMapel) return;
                 
-                // 2. Logika Filter Kelas
-                // (Jika p.kelas kosong/data lama, kita anggap kelas 1 sebagai default agar tidak error)
+                // 3. Logika Filter Kelas
                 const pKelas = p.kelas || '1'; 
                 if(selectedKelas !== 'Semua' && selectedKelas !== '' && pKelas !== selectedKelas) return;
 
                 count++;
                 const tr = document.createElement('tr');
                 
-                // Memasukkan badge indikator kelas tepat di bawah teks Mata Pelajaran
+                // Mempersingkat teks waktu agar hemat ruang (Misal: "Minggu 1" jadi "M1")
+                const teksMinggu = p.mgg ? p.mgg.replace('Minggu ', 'M') : '-';
+                const teksHari = p.hr ? p.hr.replace('Hari ', 'H') : '-';
+
                 tr.innerHTML = `
-                    <td><span class="badge bg-danger bg-opacity-10 text-danger border border-danger">${p.smt}</span></td>
-                    <td class="fw-bold text-primary align-middle">
+                    <td><span class="badge bg-danger bg-opacity-10 text-danger border border-danger p-1" style="font-size:0.65rem;">${p.smt}</span></td>
+                    <td class="fw-bold text-primary align-middle lh-sm">
                         ${p.mapel || '-'} <br>
-                        <span class="badge bg-success mt-1" style="font-size: 0.65rem;">Kls ${pKelas}</span>
+                        <span class="badge bg-success mt-1" style="font-size: 0.6rem;">Kls ${pKelas}</span>
                     </td>
-                    <td class="text-start align-middle" style="white-space: nowrap;">${p.tgl}</td>
+                    <td class="text-start align-middle lh-sm" style="font-size: 0.7rem;">${p.tgl}</td>
                     <td class="fw-bold align-middle">${p.bab}</td>
-                    <td class="text-start align-middle">${p.materi}</td>
-                    <td class="text-start align-middle">${p.tp}</td>
-                    <td class="align-middle"><span class="fw-bold text-secondary">${p.bln}</span></td>
-                    <td class="align-middle">${p.mgg}</td>
-                    <td class="align-middle">${p.hr}</td>
+                    <td class="text-start align-middle lh-sm">${p.materi}</td>
+                    <td class="text-start align-middle lh-sm">${p.tp}</td>
+                    <td class="align-middle"><span class="fw-bold text-secondary">${p.bln.substring(0,3)}</span></td>
+                    <td class="align-middle fw-bold">${teksMinggu}</td>
+                    <td class="align-middle fw-bold">${teksHari}</td>
                     <td class="fw-bold text-danger align-middle">${p.jp || '-'}</td>
-                    <td class="admin-action align-middle"><button class="btn btn-sm btn-light text-danger shadow-sm" onclick="hapusProta('${p.id}')"><i class="fas fa-trash"></i></button></td>
+                    <td class="admin-action align-middle"><button class="btn btn-sm btn-light text-danger shadow-sm py-0 px-1" onclick="hapusProta('${p.id}')"><i class="fas fa-trash"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
             
-            // Pesan jika data kosong setelah difilter
             if(count === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="text-muted py-4">Belum ada data Program Tahunan sesuai filter kelas/mapel.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="text-muted py-4">Belum ada data Program Tahunan sesuai filter yang dipilih.</td></tr>';
             }
         }
 
