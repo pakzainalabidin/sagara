@@ -4840,16 +4840,18 @@ function bukaKunciPresensi() {
                     adaNilai = keysNilai.length > 0;
                 }
                 if (adaNilai) nilaiVal = 100;
-
-                // 5. PERANGKAT AJAR / PROTA (Cek Spesifik berdasarkan Jabatan)
+// 5. PERANGKAT AJAR / PROTA (Cek Spesifik berdasarkan Jabatan)
                 let jurnalVal = 0;
                 let adaProta = false;
                 if (GLOBAL_DATA.prota && GLOBAL_DATA.prota.length > 0) {
                     if (mapelKhusus !== '') {
-                        // Guru Mapel mencari Prota miliknya
+                        // Guru Mapel mencari Prota miliknya (Mapel khusus biasanya untuk semua kelas)
                         adaProta = GLOBAL_DATA.prota.some(p => p.mapel === mapelKhusus);
-                    } else if (isGuruKelas) {
-                        // Guru Kelas mencari Prota mapel umum
+                    } else if (isGuruKelas && kBase !== 'Semua') {
+                        // PERBAIKAN: Guru Kelas mencari Prota mapel umum YANG SESUAI DENGAN KELASNYA
+                        let mapelUmum = ['Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika', 'IPAS', 'Seni Budaya', 'Kokurikuler'];
+                        adaProta = GLOBAL_DATA.prota.some(p => mapelUmum.includes(p.mapel) && String(p.kelas) === String(kBase));
+                    } else if (isGuruKelas && kBase === 'Semua') {
                         let mapelUmum = ['Pendidikan Pancasila', 'Bahasa Indonesia', 'Matematika', 'IPAS', 'Seni Budaya', 'Kokurikuler'];
                         adaProta = GLOBAL_DATA.prota.some(p => mapelUmum.includes(p.mapel));
                     } else {
