@@ -1485,19 +1485,25 @@ if (action === 'deletePesanBanyak') {
                 </div>
 <div id="page-prosem" class="page-content" style="display: none;"> 
                     <div class="card-panel border-0 shadow-sm">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold mb-0"><i class="fas fa-calendar-week text-warning me-2"></i>Program Semester (Prosem)</h5>
-                            <div class="mt-2 mt-md-0 d-flex gap-2">
-                                <!-- Filter Mapel Prosem -->
-                                <!-- Tambahkan ini juga di sebelah filter-mapel-prosem (di dalam page-prosem) -->
-<select class="form-select form-select-sm border-success" id="filter-kelas-prosem" style="min-width: 110px;" onchange="renderProsem()">
-    <option value="Semua">Semua Kelas</option>
-    <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
-    <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
-</select>
-                                <button class="btn btn-sm btn-danger" onclick="exportProsem_PDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
-                            </div>
-                        </div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+    <h5 class="fw-bold mb-0 text-nowrap me-3"><i class="fas fa-calendar-week text-warning me-2"></i>Program Semester (Prosem)</h5>
+    
+    <div class="d-flex align-items-center gap-2 flex-nowrap" style="overflow-x: auto; padding-bottom: 5px;">
+        <!-- FITUR BARU: Filter Mata Pelajaran -->
+        <select class="form-select form-select-sm border-primary flex-shrink-0" id="filter-mapel-prosem" style="width: 140px;" onchange="renderProsem()">
+            <option value="Semua">Semua Mapel</option>
+        </select>
+
+        <!-- Filter Kelas -->
+        <select class="form-select form-select-sm border-success flex-shrink-0" id="filter-kelas-prosem" style="width: 110px;" onchange="renderProsem()">
+            <option value="Semua">Semua Kelas</option>
+            <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
+            <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
+        </select>
+        
+        <button class="btn btn-sm btn-danger flex-shrink-0" onclick="exportProsem_PDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
+    </div>
+</div>
                         <div class="alert alert-info small py-2 mb-4 border-0">
                             <i class="fas fa-magic me-1"></i> Data Prosem ini disinkronisasi otomatis dari menu <b>Program Tahunan (Prota)</b>.
                         </div>
@@ -1542,9 +1548,13 @@ if (action === 'deletePesanBanyak') {
                         <div class="d-flex align-items-center justify-content-between mb-4">
     <h5 class="fw-bold mb-0 text-nowrap me-3"><i class="fas fa-calendar text-danger me-2"></i>Program Tahunan (Prota)</h5>
     
-    <!-- Bungkus tombol disejajarkan paksa (flex-nowrap) dengan kemampuan scroll jika layar sempit -->
     <div class="d-flex align-items-center gap-2 flex-nowrap" style="overflow-x: auto; padding-bottom: 5px;">
-        
+        <!-- FITUR BARU: Filter Mata Pelajaran -->
+        <select class="form-select form-select-sm border-primary flex-shrink-0" id="filter-mapel-prota" style="width: 140px;" onchange="renderProta()">
+            <option value="Semua">Semua Mapel</option>
+        </select>
+
+        <!-- Filter Kelas -->
         <select class="form-select form-select-sm border-success flex-shrink-0" id="filter-kelas-prota" style="width: 110px;" onchange="renderProta()">
             <option value="Semua">Semua Kelas</option>
             <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
@@ -1555,7 +1565,6 @@ if (action === 'deletePesanBanyak') {
         <button class="btn btn-sm btn-primary flex-shrink-0" onclick="bukaModalProta()"><i class="fas fa-plus"></i> Tambah Prota</button>
         <button class="btn btn-sm btn-success flex-shrink-0" onclick="simpanProtaKeServer()"><i class="fas fa-save"></i> Simpan Permanen</button>
         <button class="btn btn-sm btn-danger flex-shrink-0" onclick="hapusSemuaProta()"><i class="fas fa-trash-alt"></i> Bersihkan Semua</button>
-        
     </div>
 </div>
                         <div class="table-responsive">
@@ -1923,95 +1932,93 @@ if (action === 'deletePesanBanyak') {
     </div>
 
     <div id="modalTambahProta" class="modal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; align-items: center; justify-content: center;">
-        <div class="modal-dialog modal-dialog-centered modal-lg" style="width: 100%; max-width: 750px; margin: 1.75rem auto;">
-            <div class="modal-content border-0 shadow-lg rounded-3 bg-white">
-                <div class="modal-header bg-danger text-white border-0 rounded-top p-3 d-flex justify-content-between align-items-center">
-                    <h5 class="modal-title fw-bold m-0" style="font-size: 1.1rem;"><i class="fas fa-calendar-plus me-2"></i>Isi Program Tahunan & Semester</h5>
-                    <button type="button" class="btn-close btn-close-white" onclick="tutupModalProta()"></button>
-                </div>
-                <div class="modal-body p-4 text-start text-dark">
-    <!-- BARIS PERTAMA: Tambahan Input Tanggal yang hilang -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label small fw-bold">Tanggal</label>
-            <input type="date" class="form-control" id="input-modal-prota-tgl" onchange="updateBulanOtomatisProta()">
-        </div>
-        <div class="col-md-4">
-            <label class="form-label small fw-bold">Bulan Pelaksanaan</label>
-            <input type="text" class="form-control bg-light" id="input-modal-prota-bulan" readonly>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label small fw-bold">Semester</label>
-            <select class="form-select" id="input-modal-prota-semester">
-                <option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>
-            </select>
-        </div>
-    </div>
-    
-    <!-- BARIS KEDUA -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label small fw-bold">Kelas</label>
-            <select class="form-select border-success" id="input-modal-prota-kelas">
-                <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
-                <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
-            </select>
-        </div>
-        <div class="col-md-8">
-            <label class="form-label small fw-bold">Mata Pelajaran</label>
-            <select class="form-select border-primary" id="input-modal-prota-mapel"></select>
-        </div>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label class="form-label small fw-bold">Bab</label>
-            <input type="text" class="form-control" id="input-modal-prota-bab" placeholder="Contoh: Bab 1">
-        </div>
-        <div class="col-md-8">
-            <label class="form-label small fw-bold">Materi</label>
-            <input type="text" class="form-control" id="input-modal-prota-materi" placeholder="Rincian Materi Pendek">
-        </div>
-    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Tujuan Pembelajaran <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="input-modal-prota-tp" rows="2" placeholder="Tulis Tujuan Pembelajaran lengkap..."></textarea>
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="width: 100%; max-width: 800px; margin: 1.75rem auto;">
+        <div class="modal-content border-0 shadow-lg rounded-3 bg-white">
+            <div class="modal-header bg-danger text-white border-0 rounded-top p-3 d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold m-0" style="font-size: 1.1rem;"><i class="fas fa-calendar-plus me-2"></i>Isi Program Tahunan & Semester</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="tutupModalProta()"></button>
+            </div>
+            <div class="modal-body p-4 text-start text-dark">
+                <!-- BARIS 1: Tanggal, Bulan, Semester -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Tanggal</label>
+                        <input type="date" class="form-control" id="input-modal-prota-tgl" onchange="updateBulanOtomatisProta()">
                     </div>
-                   <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Alokasi Waktu (Minggu)</label>
-                            <select class="form-select" id="input-modal-prota-minggu">
-                                <option value="Minggu 1">Minggu 1</option>
-                                <option value="Minggu 2">Minggu 2</option>
-                                <option value="Minggu 3">Minggu 3</option>
-                                <option value="Minggu 4">Minggu 4</option>
-                                <option value="Minggu 5">Minggu 5</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Alokasi Waktu (Hari)</label>
-                            <select class="form-select" id="input-modal-prota-hari">
-                                <option value="Hari 1">Hari 1</option>
-                                <option value="Hari 2">Hari 2</option>
-                                <option value="Hari 3">Hari 3</option>
-                                <option value="Hari 4">Hari 4</option>
-                                <option value="Hari 5">Hari 5</option>
-                                <option value="Hari 6">Hari 6</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold">Jumlah JP</label>
-                            <input type="number" class="form-control" id="input-modal-prota-jp" placeholder="Misal: 2">
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Bulan Pelaksanaan</label>
+                        <input type="text" class="form-control bg-light" id="input-modal-prota-bulan" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Semester</label>
+                        <select class="form-select" id="input-modal-prota-semester">
+                            <option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>
+                        </select>
                     </div>
                 </div>
-                <div class="modal-footer border-0 bg-light rounded-bottom p-3">
-                    <button type="button" class="btn btn-secondary" onclick="tutupModalProta()">Batal</button>
-                    <button type="button" class="btn btn-danger fw-bold" onclick="simpanProtaModal()"><i class="fas fa-check me-2"></i>Simpan & Sinkronkan</button>
+                
+                <!-- BARIS 2: Kelas dan Mapel -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Kelas</label>
+                        <select class="form-select border-success" id="input-modal-prota-kelas">
+                            <option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option>
+                            <option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold">Mata Pelajaran</label>
+                        <select class="form-select border-primary" id="input-modal-prota-mapel"></select>
+                    </div>
                 </div>
+                
+                <!-- BARIS 3: Bab dan Materi -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Bab</label>
+                        <input type="text" class="form-control" id="input-modal-prota-bab" placeholder="Contoh: Bab 1">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold">Materi</label>
+                        <input type="text" class="form-control" id="input-modal-prota-materi" placeholder="Rincian Materi Pendek">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Tujuan Pembelajaran <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="input-modal-prota-tp" rows="2" placeholder="Tulis Tujuan Pembelajaran lengkap..."></textarea>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Alokasi Waktu (Minggu)</label>
+                        <select class="form-select" id="input-modal-prota-minggu">
+                            <option value="Minggu 1">Minggu 1</option><option value="Minggu 2">Minggu 2</option>
+                            <option value="Minggu 3">Minggu 3</option><option value="Minggu 4">Minggu 4</option>
+                            <option value="Minggu 5">Minggu 5</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Alokasi Waktu (Hari)</label>
+                        <select class="form-select" id="input-modal-prota-hari">
+                            <option value="Hari 1">Hari 1</option><option value="Hari 2">Hari 2</option>
+                            <option value="Hari 3">Hari 3</option><option value="Hari 4">Hari 4</option>
+                            <option value="Hari 5">Hari 5</option><option value="Hari 6">Hari 6</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Jumlah JP</label>
+                        <input type="number" class="form-control" id="input-modal-prota-jp" placeholder="Misal: 2">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light rounded-bottom p-3">
+                <button type="button" class="btn btn-secondary" onclick="tutupModalProta()">Batal</button>
+                <button type="button" class="btn btn-danger fw-bold" onclick="simpanProtaModal()"><i class="fas fa-check me-2"></i>Simpan & Sinkronkan</button>
             </div>
         </div>
     </div>
+</div>
 
     <div id="modalInputPresensi" class="modal" tabindex="-1" style="display: none; background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; align-items: center; justify-content: center;">
         <div class="modal-dialog modal-dialog-centered" style="width: 100%; max-width: 400px; margin: 1.75rem auto;">
@@ -6229,6 +6236,45 @@ async function simpanJurnalKeServer() {
             document.getElementById('input-modal-prota-tgl').value = getTanggalHariIni();
             updateBulanOtomatisProta();
             populateMapelDropdowns(); 
+
+            // FITUR BARU: Baca Profil User yang sedang Login
+            const jSelect = document.getElementById('select-jabatan-guru');
+            const kSelect = document.getElementById('select-kelas-guru');
+            const jabatanUser = jSelect ? jSelect.value : '';
+            const kelasBaseUser = kSelect ? kSelect.value : 'Semua';
+
+            const filterKelasTabel = document.getElementById('filter-kelas-prota');
+            const modalKelas = document.getElementById('input-modal-prota-kelas');
+            
+            if (modalKelas) {
+                if (jabatanUser === 'Guru Kelas' && kelasBaseUser !== 'Semua') {
+                    // KONDISI 1: Guru Kelas -> Langsung kunci mati sesuai profil base-nya
+                    modalKelas.innerHTML = `<option value="${kelasBaseUser}">Kelas ${kelasBaseUser}</option>`;
+                    modalKelas.value = kelasBaseUser;
+                    modalKelas.disabled = true;
+                    modalKelas.classList.add('bg-light', 'text-muted');
+                } else {
+                    // KONDISI 2: Admin atau Guru Mapel -> Bebas namun cerdas mengikuti layar
+                    modalKelas.innerHTML = `<option value="1">Kelas 1</option><option value="2">Kelas 2</option><option value="3">Kelas 3</option><option value="4">Kelas 4</option><option value="5">Kelas 5</option><option value="6">Kelas 6</option>`;
+                    modalKelas.disabled = false;
+                    modalKelas.classList.remove('bg-light', 'text-muted');
+                    
+                    // Jika di tabel sedang memfilter spesifik kelas tertentu, popup otomatis mengikuti
+                    if (filterKelasTabel && filterKelasTabel.value !== 'Semua') {
+                        modalKelas.value = filterKelasTabel.value;
+                    } else {
+                        modalKelas.value = '1'; // Default aman jika tabel sedang view "Semua Kelas"
+                    }
+                }
+            }
+
+            // Sinkronisasi Mapel Cerdas mengikuti filter di tabel
+            const filterMapelTabel = document.getElementById('filter-mapel-prota');
+            const modalMapel = document.getElementById('input-modal-prota-mapel');
+            if (filterMapelTabel && modalMapel && filterMapelTabel.value !== 'Semua') {
+                modalMapel.value = filterMapelTabel.value;
+            }
+
             document.getElementById('input-modal-prota-bab').value = '';
             document.getElementById('input-modal-prota-materi').value = '';
             document.getElementById('input-modal-prota-tp').value = '';
