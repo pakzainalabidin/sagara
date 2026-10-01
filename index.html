@@ -454,11 +454,11 @@ function sinkronisasiMemoriChat() {
                             const dataServer = res.data;
                             const jumlahPesanLokal = GLOBAL_DATA.pesan ? GLOBAL_DATA.pesan.length : 0;
                             const jumlahPesanServer = dataServer.pesan.length;
-                            
-                            // Jika ada pesan baru yang masuk di server
-                            if (jumlahPesanServer > jumlahPesanLokal) {
-                                // 1. Perbarui memori pesan di aplikasi
-                                GLOBAL_DATA.pesan = dataServer.pesan;
+
+                            // Jika ada perubahan (pesan bertambah ATAU pesan dihapus) di server
+                            if (jumlahPesanServer !== jumlahPesanLokal) {
+                            // 1. Perbarui memori pesan di aplikasi
+                            GLOBAL_DATA.pesan = dataServer.pesan;
                                 
                                 // 2. Trigger lonceng notifikasi agar bergetar dan angkanya bertambah
                                 hitungUnreadPesan();
